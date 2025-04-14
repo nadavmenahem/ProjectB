@@ -1,27 +1,56 @@
 import pandapower as pp
 import pandapower.networks as pn
-import pandapower.timeseries as ts
+# import pandapower.timeseries as ts
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import pandapower.plotting as pp_plot
 import os
+import json
 
 TOTAL_TIME = 200  # seconds
 SAMPLING_RATE = 8  # Hz
 NUM_CASES = 20
 SAVE_PATH = "outage_dataset"  # Path to save the dataset
+SIMULATION = False  # Set to True to run the simulation
 
-def main():
-    # net_9 = pn.case9()  # IEEE 9-bus system
-    net_39 = pn.case39()  # IEEE 39-bus system
-    # plot_network(net_9)  # Plot the network
 
-    outage_cases = generate_outage_cases(net_39, num_cases=NUM_CASES)  # Generate outage cases
-    print(outage_cases)  # Print the generated outage cases
+def save_graph(net, filename):
+    edges = extract_edges_from_net(net)  # Extract edges from the network
     
-    os.makedirs(SAVE_PATH, exist_ok=True)
-    Simulation(net=net_39, outage_cases=outage_cases)  # Run the simulation
+    print(f"edges: {edges} of length {len(edges)}")
+
+    # Convert the edges to a NumPy array of shape (2, num_edges)
+    edges = np.array(edges).T  # Transpose to make it (2, num_edges)
+    
+    # Save to npy file in the same dataset folder
+    np.save(os.path.join(SAVE_PATH, f"{filename}.npy"), edges)
+    print(f"Saved edge index to {os.path.join(SAVE_PATH, f'{filename}.npy')}")
+
+
+def extract_edges_from_net(net):
+    edges = []
+
+    # Add standard lines
+    for _, row in net.line.iterrows():
+        from_bus = row['from_bus']
+        to_bus = row['to_bus']
+        edges.append((from_bus, to_bus))
+
+    # Add two-winding transformers
+    for _, row in net.trafo.iterrows():
+        from_bus = row['hv_bus']
+        to_bus = row['lv_bus']
+        edges.append((from_bus, to_bus))
+
+    # Optionally add 3-winding transformers if any exist
+    if len(net.trafo3w):
+        for _, row in net.trafo3w.iterrows():
+            # Connect all pairs of the 3 buses (hv, mv, lv)
+            buses = [row['hv_bus'], row['mv_bus'], row['lv_bus']]
+            edges.extend([(b1, b2) for i, b1 in enumerate(buses) for b2 in buses[i+1:]])
+
+    return edges
 
 
 def Simulation(net, outage_cases=None):
@@ -146,6 +175,23 @@ def plot_network(net):
     # plt.draw()
     # plt.pause(0.001)
 
+
+def main():
+    # net_9 = pn.case9()  # IEEE 9-bus system
+
+    net_39 = pn.case39()  # IEEE 39-bus system
+    # plot_network(net_39)  # Plot the network
+
+    os.makedirs(SAVE_PATH, exist_ok=True)
+
+    save_graph(net_39, "Graph")  # Save the network graph to a JSON file
+
+    outage_cases = generate_outage_cases(net_39, num_cases=NUM_CASES)  # Generate outage cases
+    print(f"outage cases: {outage_cases}")  # Print the generated outage cases
+    
+    
+    if SIMULATION:
+        Simulation(net=net_39, outage_cases=outage_cases)  # Run the simulation
 
     
 if __name__=="__main__":

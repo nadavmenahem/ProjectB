@@ -6,10 +6,16 @@ import pandapower.plotting as pplt
 
 
 def main():
-    net_9 = nw.case9()
+    net = nw.case9()
+
+    from_buses = net.line["from_bus"].values
+    to_buses = net.line["to_bus"].values
+
+    edges = list(zip(from_buses, to_buses))  # List of (source, target)
+    print(edges)
 
     # Plot using simple plot
-    pplt.simple_plot(net_9, show_plot=True)  
+    # pplt.simple_plot(net_9, show_plot=True)  
     # ax = pplt.simple_plot(net_9, show_plot=False)
     # clc = pplt.create_line_collection(net_9, net_9.line.index, color="red", linewidth=2)
     # pplt.draw_collections([clc], ax=ax)
