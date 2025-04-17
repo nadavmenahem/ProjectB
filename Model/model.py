@@ -1,6 +1,8 @@
 import numpy as np
 import os
 import networkx as nx
+import matplotlib.pyplot as plt
+from GFT import gft
 
 # Root path for all datasets
 DATA_ROOT = "outage_dataset"
@@ -43,14 +45,44 @@ def get_graph():
     return G
 
 
+def plot_graph(G, signal=None):
+    import matplotlib.pyplot as plt
+    import networkx as nx
+
+    # Get layout for consistent node positions
+    pos = nx.spring_layout(G, seed=5)
+
+    # Draw graph structure
+    nx.draw_networkx_edges(G, pos, edge_color='red', style='dotted', alpha=0.7)
+    nx.draw_networkx_nodes(G, pos, node_color='red', node_size=100)
+
+    # If a signal is provided, plot it as vertical bars on top of nodes
+    if signal is not None:
+        for i, (x, y) in pos.items():
+            plt.plot([x, x], [y, y + signal[i]], color='blue', linewidth=2)
+
+    plt.axis('off')
+    plt.show()
+
+
 def main():
     G = get_graph()
     print("Graph loaded.")
+    plot_graph(G)
 
     X, Y = load_dataset()
     print("Dataset loaded.")
     print("X shape:", X.shape)
     print("Y shape:", Y.shape)
+
+    plot_graph(G, signal=X[0][0])
+
+    gft_sig = gft(G, X[0][0])
+    print("GFT sig: ", gft_sig)
+
+
+    plot_graph(G, signal=gft_sig)
+
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,6 @@
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 # Display results
@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 # plt.show()
 
 
-def GFT(G, signal):
+def gft(G, signal):
     # Get laplacian matrix
     L = nx.laplacian_matrix(G).toarray()
 
@@ -46,46 +46,25 @@ def GFT(G, signal):
     return gft
 
 
-
-def visualize_graph(G, signal):
-
-    # Get layout for consistent node positions
-    pos = nx.spring_layout(G, seed=42)
-
-    # Draw graph structure (nodes and edges)
-    nx.draw_networkx_edges(G, pos, edge_color='red', style='dotted', alpha=0.7)
-    nx.draw_networkx_nodes(G, pos, node_color='red', node_size=100)
-
-    # Plot signal as vertical lines (bar-style)
-    for i, (x, y) in pos.items():
-        plt.plot([x, x], [y, y + signal[i]], color='blue', linewidth=2)
-
-    plt.axis('off')
-    plt.show()
-
-
-def main():
+# def main():
     
-    # Create a graph
-    G = nx.path_graph(5)  # A simple path graph with 5 nodes
-    G.add_edges_from([(0, 3), (1, 4)])  # Add edges between nodes
+#     # Create a graph
+#     G = nx.path_graph(5)  # A simple path graph with 5 nodes
+#     G.add_edges_from([(0, 3), (1, 4)])  # Add edges between nodes
 
-    # Get a graph
-    # G, n = get_graph() # get graph and number of nodes
+#     # Get a graph
+#     # G, n = get_graph() # get graph and number of nodes
 
-    # Create graph signal
-    signal = np.array([1, 2, 3, 4, 5])
+#     # Create graph signal
+#     signal = np.array([1, 2, 3, 4, 5])
 
-    # Get graph signal
-    # signal = get_signal() # get a graph signal
+#     # Get graph signal
+#     # signal = get_signal() # get a graph signal
         
-    gft_sig = GFT(G, signal)
-    print("GFT sig: ", gft_sig)
-
-    visualize_graph(G, signal)
-    visualize_graph(G, gft_sig)
+#     gft_sig = gft(G, signal)
+#     print("GFT sig: ", gft_sig)
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
 
