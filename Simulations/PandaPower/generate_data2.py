@@ -11,21 +11,31 @@ import json
 TOTAL_TIME = 200  # seconds
 SAMPLING_RATE = 8  # Hz
 NUM_CASES = 20
-SAVE_PATH = "outage_dataset"  # Path to save the dataset
-SIMULATION = False  # Set to True to run the simulation
+DATA_ROOT = "outage_dataset"  # Path to save the dataset
+
+SIMULATION = True  # Set to True to run the simulation
+PLOTTING = False  # Set to True to plot the data
 
 
-def save_graph(net, filename):
-    edges = extract_edges_from_net(net)  # Extract edges from the network
-    
+network_options = {
+    "9": pn.case9,
+    "14": pn.case14,
+    "30": pn.case30,
+    "39": pn.case39,
+    "118": pn.case118,
+    "24" : pn.case24_ieee_rts, 
+}
+
+
+def save_graph(net, path):
+    filename = "graph.npy"
+
+    edges = extract_edges_from_net(net)
     print(f"edges: {edges} of length {len(edges)}")
 
-    # Convert the edges to a NumPy array of shape (2, num_edges)
-    edges = np.array(edges).T  # Transpose to make it (2, num_edges)
-    
-    # Save to npy file in the same dataset folder
-    np.save(os.path.join(SAVE_PATH, f"{filename}.npy"), edges)
-    print(f"Saved edge index to {os.path.join(SAVE_PATH, f'{filename}.npy')}")
+    edges = np.array(edges).T  # shape: [2, num_edges]
+    np.save(os.path.join(path, filename), edges)
+    print(f"Saved edge index to {os.path.join(path, filename)}")
 
 
 def extract_edges_from_net(net):
@@ -53,14 +63,10 @@ def extract_edges_from_net(net):
     return edges
 
 
-def Simulation(net, outage_cases=None):
-    """
-    Simulate power flow for a given network and save the results.
-    """
+def Simulation(net, outage_cases, save_path):
+    print("Simulation started")
 
     num_lines = len(net.line)
-
-    print("Simulation started")
     for i, outage in enumerate(outage_cases):
         print(f"Simulation {i+1} started | Outage lines: {outage}")
 
@@ -68,28 +74,28 @@ def Simulation(net, outage_cases=None):
         net.line["in_service"] = True
 
         # Label vector: 1 where the line is outaged
-        y = np.zeros(num_lines, dtype=np.int32)
+        Y = np.zeros(num_lines, dtype=np.int32)
         for line in outage:
-            y[line] = 1
+            Y[line] = 1
 
         data = simulate_power_flow(net, outage_lines=outage, total_time=TOTAL_TIME, sampling_rate=SAMPLING_RATE)
         X = data.values.astype(np.float32)  # shape: [1600, num_buses]
 
-        filename = os.path.join(SAVE_PATH, f"case_{i:03d}.npz")
-        np.savez(filename, x=X, y=y)
+        cases_folder = os.path.join(save_path, "cases")
+        os.makedirs(cases_folder, exist_ok=True)
+
+        filename = os.path.join(cases_folder, f"case_{i:03d}.npz")
+        np.savez(filename, x=X, y=Y)
         print(f"Saved simulation to {filename}")
 
-        # plot_data(data, bus_index=bus_index, total_time=total_time, sampling_rate=sampling_rate)
-        # plot_network(net)  # Plot the network
+        if PLOTTING:
+            plot_data(data, bus_index=3, total_time=TOTAL_TIME, sampling_rate=SAMPLING_RATE) # change...
+            plot_network(net)  # Plot the network
 
     print("Simulation completed")
 
 
 def simulate_power_flow(net, outage_lines, total_time=200, sampling_rate=8):
-    """
-    Simulate power flow over a specified time period with a line outage.
-    """
-    print("start simulation...")
     timesteps = total_time * sampling_rate  # Total number of time steps
     data = pd.DataFrame(index=range(timesteps), columns=range(len(net.bus)))  # DataFrame to store results
 
@@ -101,8 +107,6 @@ def simulate_power_flow(net, outage_lines, total_time=200, sampling_rate=8):
 
         pp.runpp(net)  # Run power flow
         data.iloc[t] = net.res_bus.va_degree.values  # Store bus angles
-
-    print("simulation done")
 
     return data
 
@@ -138,6 +142,33 @@ def generate_outage_cases(net, num_cases=20):
     outage_cases = [[int(line) for line in case] for case in outage_cases]  # Convert to int
 
     return outage_cases
+
+
+def save_metadata(net, path):
+    meta = {
+        "num_buses": len(net.bus),
+        "num_lines": len(net.line),
+        "sampling_rate": SAMPLING_RATE,
+        "total_time": TOTAL_TIME,
+        "generator": "pandapower"
+    }
+    with open(os.path.join(path, "meta.json"), "w") as f:
+        json.dump(meta, f, indent=4)
+
+
+def prepare_dataset(net, name):
+    save_path = os.path.join(DATA_ROOT, name)
+    os.makedirs(os.path.join(save_path, "cases"), exist_ok=True)
+
+    save_graph(net, save_path)
+    save_metadata(net, save_path)
+
+    outage_cases = generate_outage_cases(net, num_cases=NUM_CASES)
+    print(f"Generated outage cases for {name}: {outage_cases}")
+
+    if SIMULATION:
+        Simulation(net, outage_cases, save_path)
+
 
 
 def plot_data(data, bus_index, total_time, sampling_rate):
@@ -177,21 +208,16 @@ def plot_network(net):
 
 
 def main():
-    # net_9 = pn.case9()  # IEEE 9-bus system
+    print("Select a power network to generate the dataset:")
+    print("Options:", ", ".join(f"IEEE {k}-bus" for k in network_options))
 
-    net_39 = pn.case39()  # IEEE 39-bus system
-    # plot_network(net_39)  # Plot the network
+    network_choice = input("Enter number of buses (e.g., '39' for IEEE 39): ").strip()
 
-    os.makedirs(SAVE_PATH, exist_ok=True)
-
-    save_graph(net_39, "Graph")  # Save the network graph to a JSON file
-
-    outage_cases = generate_outage_cases(net_39, num_cases=NUM_CASES)  # Generate outage cases
-    print(f"outage cases: {outage_cases}")  # Print the generated outage cases
-    
-    
-    if SIMULATION:
-        Simulation(net=net_39, outage_cases=outage_cases)  # Run the simulation
+    if network_choice in network_options:
+        net = network_options[network_choice]()  # Lazy load
+        prepare_dataset(net, f"ieee{network_choice}")
+    else:
+        print(f"Unknown choice '{network_choice}'. Please choose from: {', '.join(network_options.keys())}")
 
     
 if __name__=="__main__":

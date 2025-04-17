@@ -2,61 +2,55 @@ import numpy as np
 import os
 import networkx as nx
 
-
-DATA_PATH = "outage_dataset"  # Path to the dataset
-GRAPH = "Graph" # name of file to load graph from
-
+# Root path for all datasets
+DATA_ROOT = "outage_dataset"
+# Choose the subfolder (e.g., "ieee39")
+NETWORK_NAME = "ieee118"
+GRAPH_FILE = "graph.npy"  # New filename for the graph
 
 def load_dataset():
     """
-    Load the dataset from the specified directory.
-    Each file contains power flow data for a specific case.
+    Load all case simulations for the selected network.
     """
     print("Loading dataset...")
 
-    X = []
-    Y = []
+    case_dir = os.path.join(DATA_ROOT, NETWORK_NAME, "cases")
+    X, Y = [], []
 
-    for filename in sorted(os.listdir(DATA_PATH)):
+    for filename in sorted(os.listdir(case_dir)):
         if filename.endswith(".npz"):
-            data = np.load(os.path.join(DATA_PATH, filename))
-            X.append(data["x"])  # shape: [1600, num_buses]
-            Y.append(data["y"])  # shape: [num_lines]
+            data = np.load(os.path.join(case_dir, filename))
+            X.append(data["x"])
+            Y.append(data["y"])
 
-    # Convert lists to arrays
-    X = np.stack(X)  # shape: [num_cases, 1600, num_buses]
+    X = np.stack(X)  # shape: [num_cases, timesteps, num_buses]
     Y = np.stack(Y)  # shape: [num_cases, num_lines]
 
     return X, Y
 
 def get_graph():
-    # Load the edge index
-    edge_index = np.load(os.path.join(DATA_PATH, f"{GRAPH}.npy"))  # shape: [2, num_edges]
+    """
+    Load the graph topology from the topology.npy file.
+    """
+    path = os.path.join(DATA_ROOT, NETWORK_NAME, GRAPH_FILE)
+    edge_index = np.load(path)
 
-    # Transpose to list of edges
     edge_list = list(zip(edge_index[0], edge_index[1]))
-
-    # Create the undirected graph in NetworkX
     G = nx.Graph()
     G.add_edges_from(edge_list)
 
-    # Done! G is your graph
     print(f"Graph has {G.number_of_nodes()} nodes and {G.number_of_edges()} edges.")
-
     return G
 
 
-
 def main():
-
-    G = get_graph()  # Load the graph
-    print("Graph loaded")
+    G = get_graph()
+    print("Graph loaded.")
 
     X, Y = load_dataset()
+    print("Dataset loaded.")
+    print("X shape:", X.shape)
+    print("Y shape:", Y.shape)
 
-    print("X shape:", X.shape)  # for IEEE 39-bus system: (20, 1600, 39)
-    print("Y shape:", Y.shape)  # for IEEE 39-bus system: (20, 35)
-
-
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
