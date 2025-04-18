@@ -1,15 +1,24 @@
+#===================IMPORTS==================
 import numpy as np
 import os
 import networkx as nx
 import matplotlib.pyplot as plt
+import json
+
 from GFT import gft
+from plot import plot_graph, plot_data
 
-# Root path for all datasets
+
+#==================CONSTANS==================
 DATA_ROOT = "outage_dataset"
-# Choose the subfolder (e.g., "ieee39")
-NETWORK_NAME = "ieee118"
-GRAPH_FILE = "graph.npy"  # New filename for the graph
+NETWORK_NAME = "ieee14"  # Change this to the desired network name
+GRAPH_FILE = "graph.npy"
+META_FILE = "meta.json"
 
+PLOTTING = True  # Set to True to plot the data
+
+
+#==================FUNCTIONS==================
 def load_dataset():
     """
     Load all case simulations for the selected network.
@@ -30,6 +39,7 @@ def load_dataset():
 
     return X, Y
 
+
 def get_graph():
     """
     Load the graph topology from the topology.npy file.
@@ -45,43 +55,43 @@ def get_graph():
     return G
 
 
-def plot_graph(G, signal=None):
-    import matplotlib.pyplot as plt
-    import networkx as nx
+def get_meta_data():
+    """
+    Load the metadata from the meta.json file.
+    """
+    path = os.path.join(DATA_ROOT, NETWORK_NAME, META_FILE)
+    with open(path, "r") as f:
+        metadata = json.load(f)
 
-    # Get layout for consistent node positions
-    pos = nx.spring_layout(G, seed=5)
-
-    # Draw graph structure
-    nx.draw_networkx_edges(G, pos, edge_color='red', style='dotted', alpha=0.7)
-    nx.draw_networkx_nodes(G, pos, node_color='red', node_size=100)
-
-    # If a signal is provided, plot it as vertical bars on top of nodes
-    if signal is not None:
-        for i, (x, y) in pos.items():
-            plt.plot([x, x], [y, y + signal[i]], color='blue', linewidth=2)
-
-    plt.axis('off')
-    plt.show()
+    return metadata
 
 
 def main():
+    metadata = get_meta_data()
+
     G = get_graph()
     print("Graph loaded.")
-    plot_graph(G)
 
     X, Y = load_dataset()
     print("Dataset loaded.")
     print("X shape:", X.shape)
     print("Y shape:", Y.shape)
 
-    plot_graph(G, signal=X[0][0])
-
     gft_sig = gft(G, X[0][0])
     print("GFT sig: ", gft_sig)
 
+    if PLOTTING:
+        case_number = 17
+        bus_index = np.argmax(Y[case_number])  # Find the index of the bus with a fault
+        print(f"Bus index: {bus_index}")
 
-    plot_graph(G, signal=gft_sig)
+        plot_graph(G, numbering=True, faulty_lines=Y[case_number])
+        # plot_graph(G, signal=X[0][0])
+        # plot_graph(G, signal=gft_sig)
+
+        sampling_rate = metadata["sampling_rate"]
+        total_time = metadata["total_time"]
+        plot_data(X[case_number], bus_index=bus_index, sampling_rate=sampling_rate, total_time=total_time)
 
 
 if __name__ == "__main__":

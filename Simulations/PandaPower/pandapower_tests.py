@@ -5,34 +5,49 @@ import time
 import pandapower.plotting as pplt
 
 
+def save_graph(net, path):
+    # filename = "graph.npy"
+
+    edges = extract_edges_from_net(net)
+    print(f"edges: {edges} of length {len(edges)}")
+
+    edges = np.array(edges).T  # shape: [2, num_edges]
+    # np.save(os.path.join(path, filename), edges)
+    # print(f"Saved edge index to {os.path.join(path, filename)}")
+
+def extract_edges_from_net(net):
+    edges = []
+
+    # Add standard lines
+    for _, row in net.line.iterrows():
+        from_bus = row['from_bus']
+        to_bus = row['to_bus']
+        edges.append((from_bus, to_bus))
+
+    # Add two-winding transformers
+    for _, row in net.trafo.iterrows():
+        from_bus = row['hv_bus']
+        to_bus = row['lv_bus']
+        edges.append((from_bus, to_bus))
+
+    # Optionally add 3-winding transformers if any exist
+    if len(net.trafo3w):
+        for _, row in net.trafo3w.iterrows():
+            # Connect all pairs of the 3 buses (hv, mv, lv)
+            buses = [row['hv_bus'], row['mv_bus'], row['lv_bus']]
+            edges.extend([(b1, b2) for i, b1 in enumerate(buses) for b2 in buses[i+1:]])
+
+    return edges
+
+
 def main():
-    net = nw.case9()
+    # net = nw.case24_ieee_rts()
+    net = nw.case118()
 
-    from_buses = net.line["from_bus"].values
-    to_buses = net.line["to_bus"].values
+    print(f"num_buses: {len(net.bus)}, num_lines: {len(net.line)}")
+    print(f"lines: {net.line}")
 
-    edges = list(zip(from_buses, to_buses))  # List of (source, target)
-    print(edges)
-
-    # Plot using simple plot
-    # pplt.simple_plot(net_9, show_plot=True)  
-    # ax = pplt.simple_plot(net_9, show_plot=False)
-    # clc = pplt.create_line_collection(net_9, net_9.line.index, color="red", linewidth=2)
-    # pplt.draw_collections([clc], ax=ax)
-    # pplt.show_plot()
-
-    # ax = pplt.simple_plot(net_39, show_plot=False)
-    # clc = pplt.create_line_collection(net_39, net_39.line.index, color="red", linewidth=2)
-    # pplt.draw_collections([clc], ax=ax)
-    # pplt.show_plot()
-
-
-    # net_118 = nw.case118()
-    # print("hello")
-    # pp.runpp(net_39)  # Re-run power flow
-    # angles = net_39.res_bus.va_degree.values  # Collect voltage angles
-    # print(angles)
-    # print(angles.size)
+    save_graph(net, ".")
 
 
 if __name__=="__main__":
