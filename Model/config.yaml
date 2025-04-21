@@ -1,0 +1,40 @@
+# === Graph Settings ===
+
+# === Dataset Settings ===
+dataset:
+  network_name: "ieee14"  # Change this to the desired network name
+  path:   "outage_dataset"  # Path to adjacency matrix (.npy file)
+  graph_path:     "graph.npy"
+  metadata_path:  "meta.json"
+
+# === Input Signal ===
+input_features: 1             # K: Number of input features per node (e.g., phasor angle differences)
+time_steps: 200               # T: Length of time series per sample
+
+# === Spectral Convolution ===
+output_features: 16           # G: Number of spectral filters (output features)
+poly_order: 1                 # H: Degree of the frequency-domain polynomial filter
+
+# === Training ===
+batch_size: 80
+num_epochs: 50
+learning_rate: 0.001
+lr_decay: 0.9                 # Exponential learning rate decay
+
+# === Optimization ===
+optimizer: "adam"
+loss_function: "cross_entropy"
+
+# === Model ===
+use_activation: true          # Apply nonlinearity after convolution
+classifier_type: "linear"     # Linear layer after flattening
+num_classes: 1                # Binary classification (1 = line out, 0 = no outage)
+
+# === Regularization ===
+dropout: 0.0                  # Not used in the paper but you could experiment with this
+
+# === Evaluation ===
+metrics:
+  - precision
+  - recall
+  - f1_score
