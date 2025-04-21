@@ -11,6 +11,7 @@ import json
 TOTAL_TIME = 200  # seconds
 SAMPLING_RATE = 8  # Hz
 NUM_CASES = 20
+OUTAGE_TIME = 100  # seconds
 DATA_ROOT = "outage_dataset"  # Path to save the dataset
 
 SIMULATION = True  # Set to True to run the simulation
@@ -63,10 +64,27 @@ def extract_edges_from_net(net):
     return edges
 
 
+# # temporal function. for now 
+# def zero_pad(Y):
+#     """
+#     Pad the Y vector with zeros to match the length of the edges extracted from the network.
+#     """
+#     return np.pad(Y, (0, len(extract_edges_from_net) - len(Y)), mode='constant', constant_values=0)
+
+
+def get_num_lines(net):
+    """
+    Get the number of lines in the network.
+    """
+    return len(net.line) + len(net.trafo) + len(net.trafo3w)  # Total number of lines and transformers
+
+
 def Simulation(net, outage_cases, save_path):
     print("Simulation started")
 
-    num_lines = len(net.line)
+    # num_lines = len(net.line)
+    num_lines = get_num_lines(net)
+
     for i, outage in enumerate(outage_cases):
         print(f"Simulation {i+1} started | Outage lines: {outage}")
 
@@ -100,7 +118,7 @@ def simulate_power_flow(net, outage_lines, total_time=200, sampling_rate=8):
     data = pd.DataFrame(index=range(timesteps), columns=range(len(net.bus)))  # DataFrame to store results
 
     for t in range(timesteps):
-        if t == 100 * sampling_rate:  # Apply line outage at 100s
+        if t == OUTAGE_TIME * sampling_rate:  # Apply line outage at OUTAGE_TIME sec
             for line in outage_lines:
                 net.line.at[line, "in_service"] = False
                 print(f"Line {line} outaged at t={t/sampling_rate} s")
@@ -150,7 +168,8 @@ def save_metadata(net, path):
         "num_lines": len(net.line),
         "sampling_rate": SAMPLING_RATE,
         "total_time": TOTAL_TIME,
-        "generator": "pandapower"
+        "generator": "pandapower",
+        "otuage_time": OUTAGE_TIME
     }
     with open(os.path.join(path, "meta.json"), "w") as f:
         json.dump(meta, f, indent=4)
@@ -184,7 +203,7 @@ def plot_data(data, bus_index, total_time, sampling_rate):
     # Plot the phasor angle over time
     plt.figure(figsize=(10, 5))
     plt.plot(time_vector, phasor_angles, label=f"Bus {bus_index}", color='b')
-    plt.axvline(x=100, color='r', linestyle='--', label="Outage at 100s")  # Mark outage time
+    plt.axvline(x=OUTAGE_TIME, color='r', linestyle='--', label=f"Outage at {OUTAGE_TIME}s")  # Mark outage time
     plt.xlabel("Time (s)")
     plt.ylabel("Phasor Angle (degrees)")
     plt.title(f"Phasor Angle of Bus {bus_index} Over Time")

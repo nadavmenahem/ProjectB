@@ -3,5 +3,6 @@
     "num_lines": 15,
     "sampling_rate": 8,
     "total_time": 200,
-    "generator": "pandapower"
+    "generator": "pandapower",
+    "otuage_time": 100
 }
