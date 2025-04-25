@@ -8,17 +8,17 @@ dataset:
   metadata_path:  "meta.json"
 
 # === Input Signal ===
-input_features: 1             # K: Number of input features per node (e.g., phasor angle differences)
-time_steps: 200               # T: Length of time series per sample
+# input_features: 1             # K: Number of input features per node (e.g., phasor angle differences)
+# time_steps: 200               # T: Length of time series per sample
 
 # === Spectral Convolution ===
 output_features: 16           # G: Number of spectral filters (output features)
 poly_order: 1                 # H: Degree of the frequency-domain polynomial filter
 
 # === Training ===
-batch_size: 80
+batch_size: 6
 num_epochs: 50
-learning_rate: 0.001
+learning_rate: 0.01
 lr_decay: 0.9                 # Exponential learning rate decay
 
 # === Optimization ===

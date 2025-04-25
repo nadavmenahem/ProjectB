@@ -6,10 +6,14 @@ import matplotlib.pyplot as plt
 import json
 from box import Box
 import yaml
+import torch
+import torch.nn as nn
 
-from graph_utils import graph_spectral_decomposition
-from plot import plot_graph, plot_data
+from plot import plot_graph, plot_data, plot_test_case_probs
 from model import SpectralGCN
+from data_utils import get_data_loaders, load_dataset
+from model_utils import train_model, evaluate_model
+
 
 #==================CONFIG==================
 META_FILE = "meta.json"
@@ -20,26 +24,6 @@ PLOTTING = False  # Set to True to plot the data
 DEBUGGING = True  # Set to True to enable debugging mode
 
 #==================FUNCTIONS==================
-def load_dataset(dataset_path):
-    """
-    Load all case simulations for the selected network.
-    """
-    print("Loading dataset...")
-
-    case_dir = os.path.join(dataset_path, "cases")
-    X, Y = [], []
-
-    for filename in sorted(os.listdir(case_dir)):
-        if filename.endswith(".npz"):
-            data = np.load(os.path.join(case_dir, filename))
-            X.append(data["x"])
-            Y.append(data["y"])
-
-    X = np.stack(X)  # shape: [num_cases, timesteps, num_buses]
-    Y = np.stack(Y)  # shape: [num_cases, num_lines]
-
-    return X, Y
-
 
 def get_graph(dataset_path):
     """
@@ -82,65 +66,75 @@ def get_config():
     return config
 
 
-def get_model(Lambda, num_classes, num_buses):
-    config = get_config()
-
-    model = SpectralGCN(
-        num_nodes=num_buses,
-        in_features=config.input_features,  # K
-        out_features=config.output_features,  # G
-        Lambda=Lambda,
-        H=config.poly_order,  # H
-        num_classes=num_classes  # one output per power line
-    )
-
-    return model
-
 #=====================MAIN====================
 def main():
     config = get_config()
     dataset_path = os.path.join(config.dataset.path, config.dataset.network_name)
     metadata = get_meta_data(dataset_path)
     G = get_graph(dataset_path)
-    # num_of_edges = Y.shape[1], num_of_buses = X.shape[2]
 
-    X, Y = load_dataset(dataset_path)
-    print("Dataset loaded.")
-    
-    Lambda, GFTT  = graph_spectral_decomposition(G)
+    train_loader, test_loader, X_shape = get_data_loaders(dataset_path, config.batch_size)
+    num_input_features = X_shape[2]  # K
 
-    GFT = GFTT.T
-    gft_sig = GFT @ X[0][0]
+    if DEBUGGING:  
+        print("DEBUGGING: X shape:", X_shape)
+        print("DEBUGGING: num_input_features:", num_input_features)
 
-    model = get_model(Lambda=Lambda, num_classes=G.number_of_edges(), num_buses=G.number_of_nodes())
+    model = SpectralGCN(
+        num_nodes=G.number_of_nodes(),
+        in_features=num_input_features, # K
+        out_features=config.output_features, # G
+        G=G, # graph
+        H=config.poly_order, # H
+        num_classes=G.number_of_edges() # one output per power line
+    )
 
     if DEBUGGING:
-        print("DEBUGGING: Lambda shape:", Lambda.shape)
-        print("DEBUGGING: GFT shape:", GFT.shape)
-        print("DEBUGGING: X shape:", X.shape)
-        print("DEBUGGING: X[0][0] shape:", X[0][0].shape)
-        print("DEBUGGING: X shape[2]:", X.shape[2])
-        print("DEBUGGING: Y shape[1]:", Y.shape[1])
+        for name, param in model.named_parameters():
+            print(f"{name:30} | requires_grad: {param.requires_grad}")
+
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3) # need to take from config ~nadav
+    criterion = nn.KLDivLoss(reduction="batchmean")
+
+    train_model(model, train_loader, optimizer, criterion, config.num_epochs)
+
+    print("\nEvaluating on test set...")
+    y_probs, y_true, y_pred = evaluate_model(model, test_loader)
+
+    print("\nGround truth fault labels for test cases:")
+
+    for i, labels in enumerate(y_true):
+        faulty_lines = np.where(labels > 0)[0]  # indices where line is faulty
+        print(f"Test case {i}: Faulty lines = {faulty_lines.tolist()}")
+        print("prediction: ", y_pred[i])
+
+    for i in range(len(y_probs)):
+        plot_test_case_probs(y_probs[i], y_true[i], i)
+
+
+
+    if DEBUGGING:
+        # X, Y = load_dataset(dataset_path)
+        # for i, y in enumerate(Y):
+        #     print(f"Sample {i}: sum = {np.sum(y)}, y = {y}")
         print("DEBUGGING: number of nodes:", G.number_of_nodes())
         print("DEBUGGING: number of edges:", G.number_of_edges())
-        print("DEBUGGING: Y shape:", Y.shape)
-        # print("DEBUGGING: GFT sig: ", gft_sig)
 
     if PLOTTING:
+        X, Y = load_dataset(dataset_path)
         case_number = 3
         bus_index = np.argmax(Y[case_number])  # Find the index of the bus with a fault
         print(f"Bus index: {bus_index}")
 
-        plot_graph(G, numbering=True, faulty_lines=Y[case_number])
-        # plot_graph(G, signal=X[0][0])
-        # plot_graph(G, signal=gft_sig)
-
         sampling_rate = metadata["sampling_rate"]
         total_time = metadata["total_time"]
-        # plot_data(X[case_number], bus_index=4, sampling_rate=sampling_rate, total_time=total_time)
-        
-        for i in range(X.shape[2]):
-            plot_data(X[case_number], bus_index=i, sampling_rate=sampling_rate, total_time=total_time)
+        outage_time = metadata["outage_time"]
+
+        plot_data(X[case_number], bus_index=3, sampling_rate=sampling_rate, total_time=total_time, outage_time=outage_time)
+
+        # for i in range(X.shape[2]):
+        #     plot_data(X[case_number], bus_index=i, sampling_rate=sampling_rate, total_time=total_time, outage_time=outage_time)
 
 
 if __name__ == "__main__":

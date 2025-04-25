@@ -6,7 +6,7 @@ import networkx as nx
 
 #==================FUNCTIONS==================
 # not exaactly the same as in SIMULATIONS
-def plot_data(angles, bus_index, total_time=200, sampling_rate=8): 
+def plot_data(angles, bus_index, total_time=200, sampling_rate=8, outage_time=100): 
     """
     Plot the phasor angle of a specific bus over time.
     """
@@ -19,7 +19,7 @@ def plot_data(angles, bus_index, total_time=200, sampling_rate=8):
     # Plot the phasor angle over time
     plt.figure(figsize=(10, 5))
     plt.plot(time_vector, angles, label=f"Bus {bus_index}", color='b')
-    plt.axvline(x=100, color='r', linestyle='--', label="Outage at 100s")  # Mark outage time
+    plt.axvline(x=outage_time, color='r', linestyle='--', label=f"Outage at {outage_time}s")  # Mark outage time
     plt.xlabel("Time (s)")
     plt.ylabel("Phasor Angle (degrees)")
     plt.title(f"Phasor Angle of Bus {bus_index} Over Time")
@@ -71,5 +71,32 @@ def plot_graph(G, signal=None, numbering=False, faulty_lines=None):
             plt.plot([x, x], [y, y + signal[i]], color='blue', linewidth=2)
 
     plt.axis('off')
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_test_case_probs(probs, true_labels, case_idx):
+    num_lines = len(probs)
+    x = np.arange(num_lines)
+
+    width = 0.35  # width of the bars
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    # Plot predicted probabilities
+    ax.bar(x - width/2, probs, width, label='Predicted Probability', color='blue', alpha=0.7)
+
+    # Plot true labels
+    ax.bar(x + width/2, true_labels, width, label='True Label (Normalized)', color='orange', alpha=0.7)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels([str(i) for i in range(num_lines)])
+    ax.set_xlabel("Line Index")
+    ax.set_ylabel("Value")
+    ax.set_title(f"Test Case {case_idx}: Prediction vs Ground Truth")
+    ax.set_ylim(0, 1)
+    ax.legend()
+    ax.grid(True)
+
     plt.tight_layout()
     plt.show()

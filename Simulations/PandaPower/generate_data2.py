@@ -164,7 +164,7 @@ def generate_outage_cases(net, num_cases=20):
 
 def save_metadata(net, path):
     meta = {
-        "num_buses": len(net.bus),
+        "num_buses": get_num_lines(net),
         "num_lines": len(net.line),
         "sampling_rate": SAMPLING_RATE,
         "total_time": TOTAL_TIME,

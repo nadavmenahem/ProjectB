@@ -23,7 +23,7 @@ class SpectralConvolution(nn.Module):
                 conv_sum = torch.zeros_like(x_hat_k)
 
                 for h in range(self.H + 1):
-                    lambda_h = self.Lambda ** h  # (N,)
+                    lambda_h = (self.Lambda ** h).view(1, 1, -1)  # shape (1, 1, N)
                     weight = self.weights[k, g, h]
                     conv_sum += weight * x_hat_k * lambda_h  # broadcasting
                 Y_hat[:, :, g, :] += conv_sum
