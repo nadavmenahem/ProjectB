@@ -4,5 +4,5 @@
     "sampling_rate": 8,
     "total_time": 200,
     "generator": "pandapower",
-    "otuage_time": 100
+    "outage_time": 100
 }

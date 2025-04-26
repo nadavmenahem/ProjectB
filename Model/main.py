@@ -20,8 +20,8 @@ META_FILE = "meta.json"
 GRAPH_FILE = "graph.npy"
 CONFIG_FILE = "config.yaml"
 
-PLOTTING = False  # Set to True to plot the data
-DEBUGGING = True  # Set to True to enable debugging mode
+PLOTTING = True  # Set to True to plot the data
+DEBUGGING = False  # Set to True to enable debugging mode
 
 #==================FUNCTIONS==================
 
@@ -109,10 +109,9 @@ def main():
         print(f"Test case {i}: Faulty lines = {faulty_lines.tolist()}")
         print("prediction: ", y_pred[i])
 
-    for i in range(len(y_probs)):
-        plot_test_case_probs(y_probs[i], y_true[i], i)
-
-
+    if PLOTTING:
+        for i in range(len(y_probs)):
+            plot_test_case_probs(y_probs[i], y_true[i], i)
 
     if DEBUGGING:
         # X, Y = load_dataset(dataset_path)

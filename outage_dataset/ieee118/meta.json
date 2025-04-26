@@ -1,7 +1,8 @@
 {
-    "num_buses": 118,
+    "num_buses": 186,
     "num_lines": 173,
     "sampling_rate": 8,
     "total_time": 200,
-    "generator": "pandapower"
+    "generator": "pandapower",
+    "outage_time": 100
 }

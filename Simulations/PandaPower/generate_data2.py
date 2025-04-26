@@ -169,7 +169,7 @@ def save_metadata(net, path):
         "sampling_rate": SAMPLING_RATE,
         "total_time": TOTAL_TIME,
         "generator": "pandapower",
-        "otuage_time": OUTAGE_TIME
+        "outage_time": OUTAGE_TIME
     }
     with open(os.path.join(path, "meta.json"), "w") as f:
         json.dump(meta, f, indent=4)

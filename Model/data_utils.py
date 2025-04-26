@@ -58,10 +58,23 @@ def get_data_loaders(dataset_path, batch_size):
 
     # Create a dataset and split into train/test sets
     dataset = TensorDataset(X_tensor, Y_tensor)
-    train_size = int(0.8 * len(dataset)) # need to take from config ~nadav
-    test_size = len(dataset) - train_size
+    
+    num_samples = len(dataset)
+    torch.manual_seed(42)
+    indices = torch.randperm(num_samples)
 
-    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+    train_size = int(0.8 * num_samples)
+    train_indices = indices[:train_size]
+    test_indices = indices[train_size:]
+
+    train_dataset = torch.utils.data.Subset(dataset, train_indices)
+    test_dataset = torch.utils.data.Subset(dataset, test_indices)
+
+    print("\n📦 Test set ground-truth (Y):")
+    for i in range(len(test_dataset)):
+        y = test_dataset[i][1].numpy()
+        print(f"Test sample {i}: sum = {np.sum(y):.2f}, y = {np.round(y, 2)}")
+
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True) # shuffles every epoch
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)

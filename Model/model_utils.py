@@ -15,17 +15,22 @@ def evaluate_model(model, loader, threshold=0.2):
             preds = (probs > threshold).int()
 
             all_preds.append(preds.cpu())
-            all_targets.append(y_batch.int().cpu())
+            all_targets.append(y_batch.cpu())
             all_probs.append(probs.cpu())
 
     y_true = torch.cat(all_targets, dim=0).numpy()
     y_pred = torch.cat(all_preds, dim=0).numpy()
     y_probs = torch.cat(all_probs, dim=0).numpy()
 
+    print(f"\nin evaulate: y_true: {y_true}")
+
+    # make y_true binary for sklearn metrics
+    y_true_bin = (y_true > 0).astype(int)
+
     # Macro (global) precision/recall/F1
-    precision = precision_score(y_true, y_pred, average="macro", zero_division=0)
-    recall = recall_score(y_true, y_pred, average="macro", zero_division=0)
-    f1 = f1_score(y_true, y_pred, average="macro", zero_division=0)
+    precision = precision_score(y_true_bin, y_pred, average="macro", zero_division=0)
+    recall = recall_score(y_true_bin, y_pred, average="macro", zero_division=0)
+    f1 = f1_score(y_true_bin, y_pred, average="macro", zero_division=0)
 
     print("\n🔢 Macro-Average (Overall):")
     print(f"Precision = {precision:.3f}, Recall = {recall:.3f}, F1 = {f1:.3f}")
