@@ -12,7 +12,7 @@ import torch.nn as nn
 from plot import plot_graph, plot_data, plot_test_case_probs, plot_all_buses
 from model import SpectralGCN
 from data_utils import get_data_loaders, load_dataset
-from model_utils import train_model, evaluate_model
+from model_utils import train_model, evaluate_model, save_model, load_model
 
 
 #==================CONFIG==================
@@ -20,8 +20,8 @@ META_FILE = "meta.json"
 GRAPH_FILE = "graph.npy"
 CONFIG_FILE = "config.yaml"
 
-DATA_PLOTTING = True  # Set to True to plot the data
-RESULT_PLOTTING = True  # Set to True to plot the results
+DATA_PLOTTING = False  # Set to True to plot the data
+RESULT_PLOTTING = False  # Set to True to plot the results
 DEBUGGING = False  # Set to True to enable debugging mode
 
 #==================FUNCTIONS==================
@@ -94,21 +94,16 @@ def main():
         for name, param in model.named_parameters():
             print(f"{name:30} | requires_grad: {param.requires_grad}")
 
+    load_model(model=model, config=config, train_loader=train_loader)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3) # need to take from config ~nadav
-    criterion = nn.KLDivLoss(reduction="batchmean")
-
-    train_model(model, train_loader, optimizer, criterion, config.num_epochs)
-
-    print("\nEvaluating on test set...")
     y_probs, y_true, y_pred = evaluate_model(model, test_loader)
 
-    print("\nGround truth fault labels for test cases:")
-
-    for i, labels in enumerate(y_true):
-        faulty_lines = np.where(labels > 0)[0]  # indices where line is faulty
-        print(f"Test case {i}: Faulty lines = {faulty_lines.tolist()}")
-        print("prediction: ", y_pred[i])
+    if DEBUGGING:
+        print("\nGround truth fault labels for test cases:")
+        for i, labels in enumerate(y_true):
+            faulty_lines = np.where(labels > 0)[0]  # indices where line is faulty
+            print(f"Test case {i}: Faulty lines = {faulty_lines.tolist()}")
+            print("prediction: ", y_pred[i])
 
     if RESULT_PLOTTING:
         for i in range(len(y_probs)):

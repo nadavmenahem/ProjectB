@@ -51,9 +51,9 @@ def get_data_loaders(dataset_path, batch_size):
     Y_sum[Y_sum == 0] = 1  # avoid division by zero
     Y_tensor = Y_tensor / Y_sum
     
-    print("\n📦 After normalization:") # ~nadav
-    for i in range(len(Y_tensor)):
-        print(f"Sample {i}: sum = {Y_tensor[i].sum().item()}")
+    # print("\n📦 After normalization:") # ~nadav
+    # for i in range(len(Y_tensor)):
+    #     print(f"Sample {i}: sum = {Y_tensor[i].sum().item()}")
 
 
     # Create a dataset and split into train/test sets
@@ -70,10 +70,10 @@ def get_data_loaders(dataset_path, batch_size):
     train_dataset = torch.utils.data.Subset(dataset, train_indices)
     test_dataset = torch.utils.data.Subset(dataset, test_indices)
 
-    print("\n📦 Test set ground-truth (Y):")
-    for i in range(len(test_dataset)):
-        y = test_dataset[i][1].numpy()
-        print(f"Test sample {i}: sum = {np.sum(y):.2f}, y = {np.round(y, 2)}")
+    # print("\n📦 Test set ground-truth (Y):") # ~nadav
+    # for i in range(len(test_dataset)):
+    #     y = test_dataset[i][1].numpy()
+    #     print(f"Test sample {i}: sum = {np.sum(y):.2f}, y = {np.round(y, 2)}")
 
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True) # shuffles every epoch
