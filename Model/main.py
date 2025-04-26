@@ -9,7 +9,7 @@ import yaml
 import torch
 import torch.nn as nn
 
-from plot import plot_graph, plot_data, plot_test_case_probs
+from plot import plot_graph, plot_data, plot_test_case_probs, plot_all_buses
 from model import SpectralGCN
 from data_utils import get_data_loaders, load_dataset
 from model_utils import train_model, evaluate_model
@@ -20,7 +20,8 @@ META_FILE = "meta.json"
 GRAPH_FILE = "graph.npy"
 CONFIG_FILE = "config.yaml"
 
-PLOTTING = True  # Set to True to plot the data
+DATA_PLOTTING = True  # Set to True to plot the data
+RESULT_PLOTTING = True  # Set to True to plot the results
 DEBUGGING = False  # Set to True to enable debugging mode
 
 #==================FUNCTIONS==================
@@ -109,7 +110,7 @@ def main():
         print(f"Test case {i}: Faulty lines = {faulty_lines.tolist()}")
         print("prediction: ", y_pred[i])
 
-    if PLOTTING:
+    if RESULT_PLOTTING:
         for i in range(len(y_probs)):
             plot_test_case_probs(y_probs[i], y_true[i], i)
 
@@ -120,7 +121,7 @@ def main():
         print("DEBUGGING: number of nodes:", G.number_of_nodes())
         print("DEBUGGING: number of edges:", G.number_of_edges())
 
-    if PLOTTING:
+    if DATA_PLOTTING:
         X, Y = load_dataset(dataset_path)
         case_number = 3
         bus_index = np.argmax(Y[case_number])  # Find the index of the bus with a fault
@@ -130,10 +131,15 @@ def main():
         total_time = metadata["total_time"]
         outage_time = metadata["outage_time"]
 
-        plot_data(X[case_number], bus_index=3, sampling_rate=sampling_rate, total_time=total_time, outage_time=outage_time)
+        case_data = X[case_number]  # shape: (T, 1, N) or (T, N)
 
-        # for i in range(X.shape[2]):
-        #     plot_data(X[case_number], bus_index=i, sampling_rate=sampling_rate, total_time=total_time, outage_time=outage_time)
+        if case_data.ndim == 3:
+            case_data = case_data.squeeze(1)  # remove feature dimension if needed
+
+        plot_all_buses(X[case_number], total_time=total_time, sampling_rate=sampling_rate, outage_time=outage_time)
+
+        # plot_data(X[case_number], bus_index=3, sampling_rate=sampling_rate, total_time=total_time,
+        #            outage_time=outage_time, fixed_ylim=y_lim)
 
 
 if __name__ == "__main__":

@@ -6,29 +6,52 @@ import networkx as nx
 
 #==================FUNCTIONS==================
 # not exaactly the same as in SIMULATIONS
-def plot_data(angles, bus_index, total_time=200, sampling_rate=8, outage_time=100): 
+def plot_data(angles, bus_index, total_time=200, sampling_rate=8, outage_time=100, fixed_ylim=(-20, 20)): 
     """
-    Plot the phasor angle of a specific bus over time.
+    Plot the phasor angle of a specific bus over time, with fixed y-axis scale for all buses.
     """
-    # Create a time vector (in seconds)
     time_vector = np.arange(0, total_time, 1 / sampling_rate)
+    angles = angles[:, bus_index]
+    # print(f"angles shape: {angles.shape}") = (1600,)
 
-    angles = angles[:,bus_index]
-    print(f"angles shape: {angles.shape}")
-
-    # Plot the phasor angle over time
     plt.figure(figsize=(10, 5))
     plt.plot(time_vector, angles, label=f"Bus {bus_index}", color='b')
-    plt.axvline(x=outage_time, color='r', linestyle='--', label=f"Outage at {outage_time}s")  # Mark outage time
+    plt.axvline(x=outage_time, color='r', linestyle='--', label=f"Outage at {outage_time}s")
     plt.xlabel("Time (s)")
     plt.ylabel("Phasor Angle (degrees)")
     plt.title(f"Phasor Angle of Bus {bus_index} Over Time")
     plt.legend()
     plt.grid()
+
+    if fixed_ylim is not None:
+        plt.ylim(fixed_ylim)  # <<< fix y-axis no matter what
+
     plt.show()
+
     # plt.show(block = False)  # Show the plot without blocking the script
     # plt.pause(1)  # Optional: Give the GUI time to draw
     # plt.close()     # Optional: Close automatically
+
+
+def plot_all_buses(case_data, total_time=200, sampling_rate=8, outage_time=100):
+
+    if case_data.ndim == 3:
+        case_data = case_data.squeeze(1)  # remove feature dimension if needed
+
+    min = case_data.min()
+    max = case_data.max()
+
+    margin10 = 0.1 * (max - min)  # 10% margin
+    y_lim = (min - margin10, max + margin10)
+
+    # plot_data(X[case_number], bus_index=3, sampling_rate=sampling_rate, total_time=total_time,
+    #            outage_time=outage_time, fixed_ylim=y_lim)
+
+    print(f"case_data shape: {case_data.shape} and time: {case_data.shape[1]}")
+
+    for i in range(case_data.shape[1]):
+        plot_data(case_data, bus_index=i, sampling_rate=sampling_rate, 
+                    total_time=total_time, outage_time=outage_time, fixed_ylim=y_lim)
 
 
 def plot_graph(G, signal=None, numbering=False, faulty_lines=None):
