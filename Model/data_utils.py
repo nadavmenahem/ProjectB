@@ -2,6 +2,56 @@ import os
 import numpy as np
 import torch
 from torch.utils.data import TensorDataset, DataLoader, random_split
+import networkx as nx
+import json
+from box import Box
+import yaml
+
+
+CONFIG_FILE = "config.yaml"
+GRAPH_FILE = "graph.npy"
+META_FILE = "meta.json"
+
+
+def get_graph(dataset_path):
+    """
+    Load the graph topology from the graph.npy file.
+    """
+    path = os.path.join(dataset_path, GRAPH_FILE)
+    edge_index = np.load(path)
+
+    edge_list = list(zip(edge_index[0], edge_index[1]))
+    G = nx.Graph()
+    G.add_edges_from(edge_list)
+
+    print(f"Graph has {G.number_of_nodes()} nodes and {G.number_of_edges()} edges.")
+    return G
+
+
+def get_meta_data(dataset_path):
+    """
+    Load the metadata from the meta.json file.
+    """
+    path = os.path.join(dataset_path, META_FILE)
+    with open(path, "r") as f:
+        metadata = json.load(f)
+
+    return metadata
+
+
+# Fix ~nadav
+def get_config():
+    """
+    Load the configuration from the config.yaml file.
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(script_dir, CONFIG_FILE)
+    
+    with open(config_path, "r") as f:
+        config = Box(yaml.safe_load(f))
+    # print(config.output_features)  # 16
+
+    return config
 
 
 def load_dataset(dataset_path):

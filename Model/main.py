@@ -4,68 +4,22 @@ import os
 import networkx as nx
 import matplotlib.pyplot as plt
 import json
-from box import Box
-import yaml
 import torch
 import torch.nn as nn
 
 from plot import plot_graph, plot_data, plot_test_case_probs, plot_all_buses
 from model import SpectralGCN
-from data_utils import get_data_loaders, load_dataset
+from data_utils import get_data_loaders, load_dataset, get_config, get_graph, get_meta_data
 from model_utils import train_model, evaluate_model, save_model, load_model
 
 
 #==================CONFIG==================
-META_FILE = "meta.json"
-GRAPH_FILE = "graph.npy"
-CONFIG_FILE = "config.yaml"
 
 DATA_PLOTTING = False  # Set to True to plot the data
 RESULT_PLOTTING = True  # Set to True to plot the results
 DEBUGGING = False  # Set to True to enable debugging mode
 
 #==================FUNCTIONS==================
-
-def get_graph(dataset_path):
-    """
-    Load the graph topology from the graph.npy file.
-    """
-    path = os.path.join(dataset_path, GRAPH_FILE)
-    edge_index = np.load(path)
-
-    edge_list = list(zip(edge_index[0], edge_index[1]))
-    G = nx.Graph()
-    G.add_edges_from(edge_list)
-
-    print(f"Graph has {G.number_of_nodes()} nodes and {G.number_of_edges()} edges.")
-    return G
-
-
-def get_meta_data(dataset_path):
-    """
-    Load the metadata from the meta.json file.
-    """
-    path = os.path.join(dataset_path, META_FILE)
-    with open(path, "r") as f:
-        metadata = json.load(f)
-
-    return metadata
-
-
-# Fix ~nadav
-def get_config():
-    """
-    Load the configuration from the config.yaml file.
-    """
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, CONFIG_FILE)
-    
-    with open(config_path, "r") as f:
-        config = Box(yaml.safe_load(f))
-    # print(config.output_features)  # 16
-
-    return config
-
 
 #=====================MAIN====================
 def main():
