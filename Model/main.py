@@ -21,7 +21,7 @@ GRAPH_FILE = "graph.npy"
 CONFIG_FILE = "config.yaml"
 
 DATA_PLOTTING = False  # Set to True to plot the data
-RESULT_PLOTTING = False  # Set to True to plot the results
+RESULT_PLOTTING = True  # Set to True to plot the results
 DEBUGGING = False  # Set to True to enable debugging mode
 
 #==================FUNCTIONS==================

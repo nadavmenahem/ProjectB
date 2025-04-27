@@ -3,9 +3,9 @@
 # === Dataset Settings ===
 dataset:
   network_name: "ieee14"  # Change this to the desired network name
-  path:   "outage_dataset"  # Path to adjacency matrix (.npy file)
-  graph_path:     "graph.npy"
-  metadata_path:  "meta.json"
+  path: "outage_dataset"  # Path to adjacency matrix (.npy file)
+  graph_path: "graph.npy"
+  metadata_path: "meta.json"
 
 # === Model Settings ===
 load_pretrained: True  # Load pretrained model weights
@@ -30,7 +30,7 @@ optimizer: "adam"
 loss_function: "cross_entropy"
 
 # === Model ===
-use_activation: true          # Apply nonlinearity after convolution
+use_activation: False          # Apply nonlinearity after convolution
 classifier_type: "linear"     # Linear layer after flattening
 num_classes: 1                # Binary classification (1 = line out, 0 = no outage)
 
