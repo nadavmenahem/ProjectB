@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 from data_utils import get_config, load_dataset, get_meta_data
-from plot import plot_all_buses
+from plot_utils import plot_all_buses
 
 
 PLOT_CLEAN_DATA = False

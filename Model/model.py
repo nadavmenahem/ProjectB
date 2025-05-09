@@ -29,7 +29,7 @@ class SpectralGCN(nn.Module):
 
     def forward(self, X):  # shape: (B, T, K, N) = batch, time, features, nodes
         X_hat = torch.einsum("ij,btkj->btki", self.GFT, X)  # GFT transform on the last dim (for every sample in the batch, for every time step and for every feature)
-        X_hat = X  # no GFT ~nadav 
+        # X_hat = X  # no GFT ~nadav 
         out = self.gcn(X_hat)  # shape: (B, T, G, N)
         out = self.activation(out)
         out = out.mean(dim=1)  # average over time dimension (T)

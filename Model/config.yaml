@@ -4,12 +4,12 @@
 dataset:
   network_name: "ieee14"  # Change this to the desired network name
   path: "outage_dataset"  # Path to adjacency matrix (.npy file)
-  noisy_path: "outage_dataset_noisy"
+  noisy_path: "outage_dataset_noisy2"
   graph_path: "graph.npy"
   metadata_path: "meta.json"
 
 # === Model Settings ===
-load_pretrained: True  # Load pretrained model weights
+load_pretrained: False  # Load pretrained model weights
 params_path: "Model/params.pth"
 
 # === Input Signal ===
@@ -17,7 +17,7 @@ params_path: "Model/params.pth"
 # time_steps: 200               # T: Length of time series per sample
 
 # === Spectral Convolution ===
-output_features: 16           # G: Number of spectral filters (output features)
+output_features: 30           # G: Number of spectral filters (output features)
 poly_order: 1                 # H: Degree of the frequency-domain polynomial filter
 
 # === Training ===

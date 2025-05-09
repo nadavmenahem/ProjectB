@@ -8,6 +8,9 @@ import pandapower.plotting as pp_plot
 import os
 import json
 
+from plot_data import plot_data, plot_network  # Import the plotting functions
+
+
 TOTAL_TIME = 200  # seconds
 SAMPLING_RATE = 8  # Hz
 NUM_CASES = 20
@@ -64,14 +67,6 @@ def extract_edges_from_net(net):
     return edges
 
 
-# # temporal function. for now 
-# def zero_pad(Y):
-#     """
-#     Pad the Y vector with zeros to match the length of the edges extracted from the network.
-#     """
-#     return np.pad(Y, (0, len(extract_edges_from_net) - len(Y)), mode='constant', constant_values=0)
-
-
 def get_num_lines(net):
     """
     Get the number of lines in the network.
@@ -107,7 +102,7 @@ def Simulation(net, outage_cases, save_path):
         print(f"Saved simulation to {filename}")
 
         if PLOTTING:
-            plot_data(data, bus_index=3, total_time=TOTAL_TIME, sampling_rate=SAMPLING_RATE) # change...
+            plot_data(data, bus_index=3, total_time=TOTAL_TIME, sampling_rate=SAMPLING_RATE, outage_time=OUTAGE_TIME)
             plot_network(net)  # Plot the network
 
     print("Simulation completed")
@@ -187,43 +182,6 @@ def prepare_dataset(net, name):
 
     if SIMULATION:
         Simulation(net, outage_cases, save_path)
-
-
-
-def plot_data(data, bus_index, total_time, sampling_rate):
-    """
-    Plot the phasor angle of a specific bus over time.
-    """
-    # Create a time vector (in seconds)
-    time_vector = np.arange(0, total_time, 1 / sampling_rate)
-
-    # Extract phasor angle of the selected bus
-    phasor_angles = data[bus_index].values
-
-    # Plot the phasor angle over time
-    plt.figure(figsize=(10, 5))
-    plt.plot(time_vector, phasor_angles, label=f"Bus {bus_index}", color='b')
-    plt.axvline(x=OUTAGE_TIME, color='r', linestyle='--', label=f"Outage at {OUTAGE_TIME}s")  # Mark outage time
-    plt.xlabel("Time (s)")
-    plt.ylabel("Phasor Angle (degrees)")
-    plt.title(f"Phasor Angle of Bus {bus_index} Over Time")
-    plt.legend()
-    plt.grid()
-    plt.show(block = False)  # Show the plot without blocking the script
-    plt.pause(1)  # Optional: Give the GUI time to draw
-    plt.close()     # Optional: Close automatically
-
-
-def plot_network(net):
-    """
-    Plot the power network using pandapower's simple plot function.
-    """
-    pp_plot.simple_plot(net, show_plot=False)  # Don't show it yet
-    plt.show(block=False)  # Show the plot
-    plt.pause(1)
-    plt.close()
-    # plt.draw()
-    # plt.pause(0.001)
 
 
 def main():

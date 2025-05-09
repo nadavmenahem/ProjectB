@@ -1,0 +1,7 @@
+
+TOTAL_TIME: 200  # seconds
+SAMPLING_RATE: 8  # Hz
+NUM_CASES: 20
+OUTAGE_TIME: 100  # seconds
+DATA_ROOT: "outage_dataset_noisy2"  # Path to save the dataset
+NOISE_SCALE: 0.05  # Scale of noise to be added to loads
