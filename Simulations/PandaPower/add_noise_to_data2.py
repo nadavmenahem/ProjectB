@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Enhanced noise-adder for outage dataset.
-Supports Ornstein-Uhlenbeck (OU) colored noise and damped sinusoidal oscillations.
+Enhanced noise-adder for outage dataset (add_noise_to_data2.py).
+Supports Ornstein–Uhlenbeck (OU) colored noise and damped sinusoidal oscillations,
+and generates multiple noisy variants per case.
 """
 import os
 import numpy as np
@@ -12,7 +13,7 @@ import glob
 
 def gen_ou_noise(n_steps, n_buses, dt, sigma, tau):
     """
-    Generate Ornstein-Uhlenbeck noise.
+    Generate Ornstein–Uhlenbeck noise for one trajectory.
     theta_{t+1} = theta_t * (1 - dt/tau) + sigma * sqrt(dt) * N(0,1)
     Returns shape (n_steps, n_buses).
     """
@@ -37,54 +38,48 @@ def gen_damped_sin_noise(n_steps, n_buses, dt, A, f0, damping):
     return np.tile(osc[:, None], (1, n_buses))
 
 
-def process_dataset(input_dir, output_dir, model, **kwargs):
+def process_dataset(input_dir, output_dir, model, reps, **kwargs):
     # Ensure directories exist
     os.makedirs(output_dir, exist_ok=True)
     input_cases = os.path.join(input_dir, "cases")
     output_cases = os.path.join(output_dir, "cases")
     os.makedirs(output_cases, exist_ok=True)
 
-    # Gather all case files
+    # Find all .npz case files
     case_files = sorted(glob.glob(os.path.join(input_cases, "case_*.npz")))
     if not case_files:
         print(f"No case files found in {input_cases}")
         return
 
-    # Load one sample to infer shape and key
+    # Load first sample to infer dimensions and validate keys
     sample = np.load(case_files[0])
-    # detect array key
-    if 'data' in sample:
-        key = 'data'
-    elif 'angles' in sample:
-        key = 'angles'
-    else:
-        key = list(sample.keys())[0]
-    data0 = sample[key]
-    n_steps, n_buses = data0.shape
+    if 'x' not in sample or 'y' not in sample:
+        raise ValueError("Input .npz must contain 'x' and 'y' arrays")
+    x0 = sample['x']
+    n_steps, n_buses = x0.shape
     dt = 1.0 / kwargs.get('sampling_rate', 8.0)
 
-    # Pre-generate noise matrix once per dataset
-    if model == 'ou':
-        sigma = kwargs.get('sigma', 0.5)
-        tau   = kwargs.get('tau', 5.0)
-        noise_matrix = gen_ou_noise(n_steps, n_buses, dt, sigma, tau)
-    elif model == 'damped':
-        A       = kwargs.get('A', 0.3)
-        f0      = kwargs.get('f0', 0.8)
-        damping = kwargs.get('damping', 0.1)
-        noise_matrix = gen_damped_sin_noise(n_steps, n_buses, dt, A, f0, damping)
-    else:
-        raise ValueError(f"Unknown noise model: {model}")
+    counter = 0
+    # Apply noise to each case multiple times
+    for filepath in case_files:
+        data = np.load(filepath)
+        x = data['x']
+        y = data['y']
+        for rep in range(reps):
+            # generate fresh noise per variant
+            if model == 'ou':
+                noise = gen_ou_noise(n_steps, n_buses, dt, kwargs.get('sigma'), kwargs.get('tau'))
+            else:  # 'damped'
+                noise = gen_damped_sin_noise(n_steps, n_buses, dt,
+                                             kwargs.get('A'), kwargs.get('f0'), kwargs.get('damping'))
+            x_noisy = x + noise
 
-    # Apply noise to each case
-    for file in case_files:
-        arr = np.load(file)
-        data = arr[key]
-        noisy = data + noise_matrix
-        out_name = os.path.basename(file)
-        out_path = os.path.join(output_cases, out_name)
-        np.savez(out_path, **{key: noisy})
-        print(f"Saved noisy case: {out_path}")
+            # new filename index
+            out_name = f"case_{counter:03d}.npz"
+            out_path = os.path.join(output_cases, out_name)
+            np.savez(out_path, x=x_noisy, y=y)
+            print(f"Saved noisy case variant {rep} for {os.path.basename(filepath)} as {out_name}")
+            counter += 1
 
     # Copy over graph and metadata
     for extra in ['graph.npy', 'meta.json']:
@@ -96,8 +91,8 @@ def process_dataset(input_dir, output_dir, model, **kwargs):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Add colored or oscillatory noise to outage dataset")
-    parser.add_argument('input_dir',  help='Input dataset directory (base path)')
+    parser = argparse.ArgumentParser(description="Add colored or oscillatory noise to outage dataset with multiple variants per case")
+    parser.add_argument('input_dir',  help='Input dataset directory')
     parser.add_argument('output_dir', help='Output directory for noisy dataset')
     parser.add_argument('--model', choices=['ou','damped'], default='ou', help='Noise model to use')
     parser.add_argument('--sigma',     type=float, default=0.5, help='OU noise sigma (std dev)')
@@ -105,13 +100,15 @@ if __name__ == "__main__":
     parser.add_argument('--A',         type=float, default=0.3, help='Damped sinusoid amplitude (deg)')
     parser.add_argument('--f0',        type=float, default=0.8, help='Damped sinusoid frequency (Hz)')
     parser.add_argument('--damping',   type=float, default=0.1, help='Damped sinusoid decay rate')
-    parser.add_argument('--sampling_rate', type=float, default=8.0, help='Samples per second in dataset')
+    parser.add_argument('--sampling_rate', type=float, default=8.0, help='Samples per second')
+    parser.add_argument('--reps',      type=int,   default=3,   help='Number of noisy variants per case')
     args = parser.parse_args()
 
     process_dataset(
         args.input_dir,
         args.output_dir,
         args.model,
+        args.reps,
         sigma=args.sigma,
         tau=args.tau,
         A=args.A,

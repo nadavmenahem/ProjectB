@@ -4,7 +4,8 @@
 dataset:
   network_name: "ieee14"  # Change this to the desired network name
   path: "outage_dataset"  # Path to adjacency matrix (.npy file)
-  noisy_path: "outage_dataset_noisy2"
+  noisy_path: "C:\\Users\\nadav\\OneDrive - Technion\\technion\\ProjectB\\Code\\outage_dataset_noisy"
+  noisy_path2: "C:\\Users\\nadav\\OneDrive - Technion\\technion\\ProjectB\\Code\\outage_dataset_noisy2"
   graph_path: "graph.npy"
   metadata_path: "meta.json"
 

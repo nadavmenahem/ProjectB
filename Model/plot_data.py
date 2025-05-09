@@ -5,16 +5,18 @@ from data_utils import get_config, load_dataset, get_meta_data
 from plot_utils import plot_all_buses
 
 
-PLOT_CLEAN_DATA = False
+DATA = 2  # 0: clean data, 1: noisy data, 2: noisy data2
 
 
 if __name__ == "__main__":
     config = get_config()
     
-    if PLOT_CLEAN_DATA:
+    if DATA == 0:
         dataset_path = os.path.join(config.dataset.path, config.dataset.network_name)
-    else:
+    elif DATA == 1:
         dataset_path = os.path.join(config.dataset.noisy_path, config.dataset.network_name)
+    elif DATA == 2:
+        dataset_path = os.path.join(config.dataset.noisy2_path, config.dataset.network_name)
 
     metadata = get_meta_data(dataset_path)
     X, Y = load_dataset(dataset_path)

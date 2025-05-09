@@ -1,3 +1,8 @@
+"""
+This script adds *white* noise to the dataset by modifying the 'x' values in the .npz files.
+"""
+
+
 import os
 import numpy as np
 
