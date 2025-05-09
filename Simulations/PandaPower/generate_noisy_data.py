@@ -15,7 +15,7 @@ import json
 from box import Box
 import yaml
 
-from plot_data import plot_data, plot_network  # Import the plotting functions
+from plot_utils import plot_data, plot_network  # Import the plotting functions
 
 #===================CONFIG==================
 CONFIG_FILE = "data_config.yaml"
@@ -48,7 +48,6 @@ def get_config():
     # print(config.output_features)  # 16
 
     return config
-
 
 
 def save_graph(net, path):
@@ -150,38 +149,58 @@ def simulate_power_flow(net, outage_lines, total_time=200, sampling_rate=8, outa
 
     return data
 
-
-def generate_outage_cases(net, num_cases=20):
+def generate_outage_cases(net, num_cases=20, multiplicity=2):
     """
-    Generate the outage cases with either 1 or 2 lines failing or no outage at all.
+    Generate the outage cases with either 1 outage or no outage at all.
     return a list of lists, where each inner list contains the indices of the lines that are outaged.
     """
-    num_lines = len(net.line)
-
-    # Reserve 1 case for no outage
-    remaining_cases = num_cases - 1
-
-    # 75% for 1-line outages, 25% for 2-line outages
-    num_1line = int(np.floor(0.75 * remaining_cases))
-    num_2line = remaining_cases - num_1line  # Ensures total adds to (num_cases - 1)
+    num_lines = get_num_lines(net)
 
     outage_cases = []
     outage_cases.append([])  # No outage case
 
     # Generate 1-line outages
-    for _ in range(num_1line):
-        line = np.random.choice(num_lines)
-        outage_cases.append([line])
-
-    # Generate 2-line outages
-    for _ in range(num_2line):
-        pair = np.random.choice(num_lines, size=2, replace=False)
-        outage_cases.append(list(pair))
+    for line in range(num_lines):
+        for _ in range(multiplicity):
+            outage_cases.append([line])
 
     # cleaning the cases a bit... some are regular ints and some are np.int32
     outage_cases = [[int(line) for line in case] for case in outage_cases]  # Convert to int
 
     return outage_cases
+
+
+# def generate_outage_cases(net, num_cases=20):
+#     """
+#     Generate the outage cases with either 1 or 2 lines failing or no outage at all.
+#     return a list of lists, where each inner list contains the indices of the lines that are outaged.
+#     """
+#     num_lines = len(net.line)
+
+#     # Reserve 1 case for no outage
+#     remaining_cases = num_cases - 1
+
+#     # 75% for 1-line outages, 25% for 2-line outages
+#     num_1line = int(np.floor(0.75 * remaining_cases))
+#     num_2line = remaining_cases - num_1line  # Ensures total adds to (num_cases - 1)
+
+#     outage_cases = []
+#     outage_cases.append([])  # No outage case
+
+#     # Generate 1-line outages
+#     for _ in range(num_1line):
+#         line = np.random.choice(num_lines)
+#         outage_cases.append([line])
+
+#     # Generate 2-line outages
+#     for _ in range(num_2line):
+#         pair = np.random.choice(num_lines, size=2, replace=False)
+#         outage_cases.append(list(pair))
+
+#     # cleaning the cases a bit... some are regular ints and some are np.int32
+#     outage_cases = [[int(line) for line in case] for case in outage_cases]  # Convert to int
+
+#     return outage_cases
 
 
 def save_metadata(net, path, config):
@@ -204,7 +223,7 @@ def prepare_dataset(net, name, config):
     save_graph(net, save_path)
     save_metadata(net, save_path, config)
 
-    outage_cases = generate_outage_cases(net, num_cases=config.NUM_CASES)
+    outage_cases = generate_outage_cases(net, num_cases=config.NUM_CASES, multiplicity=config.MULTIPLICITY)
     print(f"Generated outage cases for {name}: {outage_cases}")
 
     if SIMULATION:

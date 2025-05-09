@@ -8,7 +8,7 @@ import pandapower.plotting as pp_plot
 import os
 import json
 
-from plot_data import plot_data, plot_network  # Import the plotting functions
+from plot_utils import plot_data, plot_network  # Import the plotting functions
 
 
 TOTAL_TIME = 200  # seconds
