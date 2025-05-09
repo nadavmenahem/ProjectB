@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Enhanced noise-adder for outage dataset.
-Supports Ornstein–Uhlenbeck (OU) colored noise and damped sinusoidal oscillations.
+Supports Ornstein-Uhlenbeck (OU) colored noise and damped sinusoidal oscillations.
 """
 import os
 import numpy as np
@@ -12,7 +12,7 @@ import glob
 
 def gen_ou_noise(n_steps, n_buses, dt, sigma, tau):
     """
-    Generate Ornstein–Uhlenbeck noise.
+    Generate Ornstein-Uhlenbeck noise.
     theta_{t+1} = theta_t * (1 - dt/tau) + sigma * sqrt(dt) * N(0,1)
     Returns shape (n_steps, n_buses).
     """
