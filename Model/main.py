@@ -34,7 +34,7 @@ def main():
     metadata = get_meta_data(dataset_path)
     G = get_graph(dataset_path)
 
-    train_loader, test_loader, X_shape = get_data_loaders(dataset_path, config.batch_size)
+    train_loader, test_loader, X_shape = get_data_loaders(dataset_path, config.batch_size, config.dataset.test_size)
     num_input_features = X_shape[2]  # K
 
     if DEBUGGING:  

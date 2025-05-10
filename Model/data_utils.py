@@ -76,7 +76,7 @@ def load_dataset(dataset_path):
     return X, Y
 
 
-def get_data_loaders(dataset_path, batch_size):
+def get_data_loaders(dataset_path, batch_size, test_size=0.2):
     """
     Load the dataset and create data loaders for training and testing.
     """
@@ -112,7 +112,9 @@ def get_data_loaders(dataset_path, batch_size):
     torch.manual_seed(42)
     indices = torch.randperm(num_samples)
 
-    train_size = int(0.8 * num_samples)
+    # Split the indices into train and test sets
+    test_size = int(num_samples * test_size)
+    train_size = num_samples - test_size
     train_indices = indices[:train_size]
     test_indices = indices[train_size:]
 
