@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import json
 import torch
 import torch.nn as nn
+import argparse
 
 from plot_utils import plot_graph, plot_data, plot_test_case_probs, plot_all_buses
 from model import SpectralGCN
@@ -23,7 +24,12 @@ DEBUGGING = False  # Set to True to enable debugging mode
 
 #=====================MAIN====================
 def main():
-    config = get_config()
+    parser = argparse.ArgumentParser(description="Spectral GCN for line outage identification")
+    parser.add_argument('-c', '--config', type=str, default=None,
+                        help='Path to a config.yaml file')
+    args = parser.parse_args()
+    config = get_config(args.config)
+
     dataset_path = os.path.join(config.dataset.path, config.dataset.network_name)
     metadata = get_meta_data(dataset_path)
     G = get_graph(dataset_path)

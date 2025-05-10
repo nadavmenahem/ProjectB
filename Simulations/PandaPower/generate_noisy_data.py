@@ -14,6 +14,7 @@ import os
 import json
 from box import Box
 import yaml
+import copy
 
 from plot_utils import plot_data, plot_network  # Import the plotting functions
 
@@ -21,7 +22,6 @@ from plot_utils import plot_data, plot_network  # Import the plotting functions
 CONFIG_FILE = "data_config.yaml"
 
 SIMULATION = True  # Set to True to run the simulation
-PLOTTING = False  # Set to True to plot the data
 
 
 #===================NETWORKS==================
@@ -102,15 +102,15 @@ def Simulation(net, outage_cases, save_path, config):
     for i, outage in enumerate(outage_cases):
         print(f"Simulation {i+1} started | Outage lines: {outage}")
 
-        # Reset network to all lines in service before each run
-        net.line["in_service"] = True
-
         # Label vector: 1 where the line is outaged
         Y = np.zeros(num_lines, dtype=np.int32)
         for line in outage:
             Y[line] = 1
 
-        data = simulate_power_flow(net, outage_lines=outage, total_time=config.TOTAL_TIME, sampling_rate=config.SAMPLING_RATE,
+        # make a fresh network for each case
+        net_case = copy.deepcopy(net) # load is not preserved from the previous case and lines are not outaged
+
+        data = simulate_power_flow(net_case, outage_lines=outage, total_time=config.TOTAL_TIME, sampling_rate=config.SAMPLING_RATE,
                                    outage_time=config.OUTAGE_TIME, noise_scale=config.NOISE_SCALE)
         X = data.values.astype(np.float32)  # shape: [1600, num_buses]
 
@@ -121,35 +121,66 @@ def Simulation(net, outage_cases, save_path, config):
         np.savez(filename, x=X, y=Y)
         print(f"Saved simulation to {filename}")
 
-        if PLOTTING:
-            plot_data(data, bus_index=3, total_time=config.TOTAL_TIME, sampling_rate=config.SAMPLING_RATE, outage_time=config.OUTAGE_TIME) 
-            plot_network(net)  # Plot the network
-
     print("Simulation completed")
 
 
 def simulate_power_flow(net, outage_lines, total_time=200, sampling_rate=8, outage_time=100, noise_scale=0.05):
     timesteps = total_time * sampling_rate  # Total number of time steps
+    
+    # # get base load profiles once (otherwise, noise is added up over time)
+    # base_p = net.load['p_mw'].values.copy()
+    # base_q = net.load['q_mvar'].values.copy()
+    
     data = pd.DataFrame(index=range(timesteps), columns=range(len(net.bus)))  # DataFrame to store results
 
     for t in range(timesteps):
         if t == outage_time * sampling_rate:  # Apply line outage at OUTAGE_TIME sec
             for line in outage_lines:
-                net.line.at[line, "in_service"] = False
+                set_branch_status(net, line, status=False)
                 print(f"Line {line} outaged at t={t/sampling_rate} s")
 
         # this is the difference between the scripts ~nadav
         if len(net.load):
-            net.load['p_mw'] *= (1 + np.random.uniform(-noise_scale, noise_scale, size=len(net.load)))
-            net.load['q_mvar'] *= (1 + np.random.uniform(-noise_scale, noise_scale, size=len(net.load)))
+            noise_p = np.random.uniform(-noise_scale, noise_scale, size=len(net.load))
+            noise_q = np.random.uniform(-noise_scale, noise_scale, size=len(net.load))
+            net.load['p_mw']   *= (1 + noise_p)
+            net.load['q_mvar'] *= (1 + noise_q)
+            # net.load['p_mw'] = base_p * (1 + noise_p)
+            # net.load['q_mvar'] = base_q * (1 + noise_q)
 
+        # in order to handle more noise (otherwise will not converge) ~nadav
+        try:
+            pp.runpp(net, max_iteration=50)
+        except Exception as e:
+            print(f"Power flow failed at t={t}: {e}")
+            data.iloc[t] = np.nan
+            continue
+        # pp.runpp(net)  # Run power flow
 
-        pp.runpp(net)  # Run power flow
         data.iloc[t] = net.res_bus.va_degree.values  # Store bus angles
 
     return data
 
-def generate_outage_cases(net, num_cases=20, multiplicity=2):
+
+def set_branch_status(net, idx, status=True):
+    """
+    idx numbers all branches [lines | 2-w trafos | 3-w trafos].
+    Flip the correct table's 'in_service' flag.
+    """
+    n_line   = len(net.line)
+    n_trafo  = len(net.trafo)
+
+    if idx < n_line:                          # ordinary line
+        net.line.at[idx, "in_service"] = status
+    elif idx < n_line + n_trafo:              # 2-w transformer
+        net.trafo.at[idx - n_line, "in_service"] = status
+    else:                                     # 3-w transformer
+        offset = idx - n_line - n_trafo
+        net.trafo3w.at[offset, "in_service"] = status
+
+
+
+def generate_outage_cases(net, multiplicity=2):
     """
     Generate the outage cases with either 1 outage or no outage at all.
     return a list of lists, where each inner list contains the indices of the lines that are outaged.
@@ -223,7 +254,8 @@ def prepare_dataset(net, name, config):
     save_graph(net, save_path)
     save_metadata(net, save_path, config)
 
-    outage_cases = generate_outage_cases(net, num_cases=config.NUM_CASES, multiplicity=config.MULTIPLICITY)
+    # outage_cases = generate_outage_cases(net, num_cases=config.NUM_CASES, multiplicity=config.MULTIPLICITY)
+    outage_cases = generate_outage_cases(net, multiplicity=config.MULTIPLICITY)
     print(f"Generated outage cases for {name}: {outage_cases}")
 
     if SIMULATION:

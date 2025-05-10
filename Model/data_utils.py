@@ -6,9 +6,10 @@ import networkx as nx
 import json
 from box import Box
 import yaml
+from typing import Optional
 
 
-CONFIG_FILE = "config.yaml"
+CONFIG_FILE = "./Model/config.yaml"
 GRAPH_FILE = "graph.npy"
 META_FILE = "meta.json"
 
@@ -39,18 +40,16 @@ def get_meta_data(dataset_path):
     return metadata
 
 
-# Fix ~nadav
-def get_config():
+def get_config(config_path: Optional[str] = None) -> Box:
     """
-    Load the configuration from the config.yaml file.
+    Load the configuration from a provided path or fall back to the default.
     """
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, CONFIG_FILE)
-    
+    if config_path is None:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(script_dir, CONFIG_FILE)
     with open(config_path, "r") as f:
-        config = Box(yaml.safe_load(f))
-    # print(config.output_features)  # 16
-
+        cfg = yaml.safe_load(f)
+    config = Box(cfg)
     return config
 
 
