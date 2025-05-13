@@ -14,6 +14,12 @@ GRAPH_FILE = "graph.npy"
 META_FILE = "meta.json"
 
 
+"""
+should I turn this into a class?
+function that return the shape of the data instead of in the data loader?
+"""
+
+
 def get_graph(dataset_path):
     """
     Load the graph topology from the graph.npy file.

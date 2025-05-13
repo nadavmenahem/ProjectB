@@ -13,7 +13,7 @@ dataset:
   cal_size : 0.2         # Fraction of data to be used for calibration
 
 # === Model Settings ===
-load_pretrained: False  # Load pretrained model weights
+load_pretrained: True  # Load pretrained model weights
 params_path: "Model/params.pth"
 
 # === Spectral Convolution ===
@@ -26,7 +26,11 @@ num_epochs: 80
 learning_rate: 0.01
 lr_decay: 0.9                 # Exponential learning rate decay - CURRENTLY NOT USED
 
-
+# === Conformal Prediction ===
+Conformal:
+  alpha: 0.1                # Significance level for conformal prediction
+  topk: 3                # Number of top predictions to consider
+  
 
 # from now on - CURRENTLY NOT USED
 

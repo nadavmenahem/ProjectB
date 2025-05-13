@@ -98,7 +98,7 @@ def plot_graph(G, signal=None, numbering=False, faulty_lines=None):
     plt.show()
 
 
-def plot_test_case_probs(probs, true_labels, case_idx):
+def plot_test_case_probs(probs, true_labels, case_idx, topk_indices=None, conformal_set=None):
     num_lines = len(probs)
     x = np.arange(num_lines)
 
@@ -112,13 +112,29 @@ def plot_test_case_probs(probs, true_labels, case_idx):
     # Plot true labels
     ax.bar(x + width/2, true_labels, width, label='True Label (Normalized)', color='orange', alpha=0.7)
 
+    # Plot vertical lines for top-k predictions
+    if topk_indices is not None:
+        for idx in topk_indices:
+            ax.axvline(x=idx, color='green', linestyle='--', alpha=0.6,
+                       label='Top-k Prediction' if idx == topk_indices[0] else None)
+
+    # Plot vertical lines for conformal prediction set
+    if conformal_set is not None:
+        for idx in conformal_set:
+            ax.axvline(x=idx, color='purple', linestyle=':', alpha=0.3,
+                       label='Conformal Set' if idx == conformal_set[0] else None)
+
+    # De-duplicate legend entries
+    handles, labels = ax.get_legend_handles_labels()
+    unique = dict(zip(labels, handles))
+    ax.legend(unique.values(), unique.keys())
+
     ax.set_xticks(x)
     ax.set_xticklabels([str(i) for i in range(num_lines)])
     ax.set_xlabel("Line Index")
     ax.set_ylabel("Value")
     ax.set_title(f"Test Case {case_idx}: Prediction vs Ground Truth")
     ax.set_ylim(0, 1)
-    ax.legend()
     ax.grid(True)
 
     plt.tight_layout()
