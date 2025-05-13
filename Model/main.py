@@ -34,7 +34,7 @@ def main():
     metadata = get_meta_data(dataset_path)
     G = get_graph(dataset_path)
 
-    train_loader, test_loader, X_shape = get_data_loaders(dataset_path, config.batch_size, config.dataset.test_size)
+    train_loader, test_loader, cal_loader, X_shape = get_data_loaders(dataset_path, config.batch_size, config.dataset.test_size, config.dataset.cal_size)
     num_input_features = X_shape[2]  # K
 
     if DEBUGGING:  
@@ -54,7 +54,10 @@ def main():
         for name, param in model.named_parameters():
             print(f"{name:30} | requires_grad: {param.requires_grad}")
 
-    load_model(model=model, config=config, train_loader=train_loader)
+    if config.load_pretrained and os.path.exists(config.params_path):
+        load_model(model=model, params_path=config.params_path)
+    else:
+        train_model(model=model, train_loader=train_loader, num_epochs=config.num_epochs, params_path=config.params_path)
 
     y_probs, y_true, y_pred = evaluate_model(model, test_loader)
 

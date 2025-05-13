@@ -75,21 +75,28 @@ def save_model(model, path):
     torch.save(model.state_dict(), path)
 
 
-def load_model(model, config, train_loader=None):
+def load_model(model, params_path):
     """
     Load the model and optionally train it if not using a pretrained model.
     """
+    print("Loading pretrained model...")
 
+    model.load_state_dict(torch.load(params_path))
+    model.eval()  # optional — set to eval if you're only evaluating
+    
+    print(f"Model loaded.")
+    
+
+
+def train_model(model, train_loader, num_epochs, params_path):
+    """
+    auxiliary function to train the model
+    """
+    print("Training model...")
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3) # need to take from config ~nadav
     criterion = nn.KLDivLoss(reduction="batchmean")
-    
-    if config.load_pretrained and os.path.exists(config.params_path):
-        print("Loading pretrained model...")
-        model.load_state_dict(torch.load(config.params_path))
-        model.eval()  # optional — set to eval if you're only evaluating
-        print(f"Model loaded.")
-    else:
-        print("Training model...")
-        train_model(model, train_loader, optimizer, criterion, config.num_epochs)
-        torch.save(model.state_dict(), config.params_path)
-        print(f"Model trained and saved to {config.params_path}")
+
+    train_model(model, train_loader, optimizer, criterion, num_epochs)
+
+    torch.save(model.state_dict(), params_path)
+    print(f"Model trained and saved to {params_path}")

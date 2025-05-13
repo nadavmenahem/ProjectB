@@ -5,7 +5,7 @@ import argparse
 from data_utils import get_config, load_dataset, get_meta_data
 from plot_utils import plot_all_buses
 
-CASE_NUMBER = 60  # The case number to plot
+CASE_NUMBER = 30  # The case number to plot
 
 
 if __name__ == "__main__":

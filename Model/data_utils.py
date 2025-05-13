@@ -76,7 +76,7 @@ def load_dataset(dataset_path):
     return X, Y
 
 
-def get_data_loaders(dataset_path, batch_size, test_size=0.2):
+def get_data_loaders(dataset_path, batch_size, test_size=0.2, cal_size=0.2):
     """
     Load the dataset and create data loaders for training and testing.
     """
@@ -114,11 +114,15 @@ def get_data_loaders(dataset_path, batch_size, test_size=0.2):
 
     # Split the indices into train and test sets
     test_size = int(num_samples * test_size)
-    train_size = num_samples - test_size
-    train_indices = indices[:train_size]
-    test_indices = indices[train_size:]
+    cal_size = int(num_samples * cal_size)
+    train_size = num_samples - test_size - cal_size
 
+    train_indices = indices[:train_size]
+    cal_indices = indices[train_size:train_size + cal_size]
+    test_indices = indices[train_size + cal_size:]
+    
     train_dataset = torch.utils.data.Subset(dataset, train_indices)
+    cal_dataset = torch.utils.data.Subset(dataset, cal_indices)
     test_dataset = torch.utils.data.Subset(dataset, test_indices)
 
     # print("\n📦 Test set ground-truth (Y):") # ~nadav
@@ -126,8 +130,8 @@ def get_data_loaders(dataset_path, batch_size, test_size=0.2):
     #     y = test_dataset[i][1].numpy()
     #     print(f"Test sample {i}: sum = {np.sum(y):.2f}, y = {np.round(y, 2)}")
 
-
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True) # shuffles every epoch
+    cal_loader = DataLoader(cal_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    return train_loader, test_loader, X_tensor.shape
+    return train_loader, cal_loader, test_loader, X_tensor.shape
