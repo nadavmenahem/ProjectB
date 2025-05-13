@@ -48,7 +48,15 @@ def evaluate_model(model, loader, threshold=0.2):
 
 
 
-def train_model(model, train_loader, optimizer, criterion, num_epochs):
+def train_model(model, train_loader, num_epochs, params_path):
+    """
+    Train the model using the provided data loader, optimizer, and loss function.
+    """
+    print("Training model...")
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3) # need to take from config ~nadav
+    criterion = nn.KLDivLoss(reduction="batchmean")
+
     for epoch in range(num_epochs):
         model.train()
         epoch_loss = 0.0
@@ -69,6 +77,10 @@ def train_model(model, train_loader, optimizer, criterion, num_epochs):
 
         print(f"Epoch {epoch+1}/{num_epochs} - Loss: {epoch_loss:.4f}")
 
+    torch.save(model.state_dict(), params_path)
+    print(f"Model trained and saved to {params_path}")
+    
+
 
 def save_model(model, path):
     print(f"saving model in {path}")
@@ -84,19 +96,4 @@ def load_model(model, params_path):
     model.load_state_dict(torch.load(params_path))
     model.eval()  # optional — set to eval if you're only evaluating
     
-    print(f"Model loaded.")
-    
-
-
-def train_model(model, train_loader, num_epochs, params_path):
-    """
-    auxiliary function to train the model
-    """
-    print("Training model...")
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3) # need to take from config ~nadav
-    criterion = nn.KLDivLoss(reduction="batchmean")
-
-    train_model(model, train_loader, optimizer, criterion, num_epochs)
-
-    torch.save(model.state_dict(), params_path)
-    print(f"Model trained and saved to {params_path}")
+    print(f"Model loaded.")    
