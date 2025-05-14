@@ -15,6 +15,8 @@ import json
 from box import Box
 import yaml
 import copy
+import argparse
+from typing import Optional
 
 from plot_utils import plot_data, plot_network  # Import the plotting functions
 
@@ -36,17 +38,18 @@ network_options = {
 
 
 #===================FUNCTIONS==================
-def get_config():
+def get_config(config_path: Optional[str] = None) -> Box:
     """
-    Load the configuration from the config.yaml file.
+    Load config from a provided path, or fall back to CONFIG_FILE next to this script.
     """
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, CONFIG_FILE)
-    
+    if config_path is None:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(script_dir, CONFIG_FILE)
+ 
     with open(config_path, "r") as f:
-        config = Box(yaml.safe_load(f))
-    # print(config.output_features)  # 16
-
+        cfg = yaml.safe_load(f)
+    config = Box(cfg)
+   
     return config
 
 
@@ -188,7 +191,9 @@ def generate_outage_cases(net, multiplicity=2):
     num_lines = get_num_lines(net)
 
     outage_cases = []
-    outage_cases.append([])  # No outage case
+    
+    for _ in range(multiplicity):
+        outage_cases.append([])  # No outage case
 
     # Generate 1-line outages
     for line in range(num_lines):
@@ -263,6 +268,17 @@ def prepare_dataset(net, name, config):
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Generate noisy dataset for line-outage identification"
+    )
+    parser.add_argument(
+        "-c", "--config", type=str, default=None,
+        help="Path to your YAML config (defaults to data_config.yaml next to this script)"
+    )
+    args = parser.parse_args()
+
+    config = get_config(args.config)
+
     print("Select a power network to generate the dataset:")
     print("Options:", ", ".join(f"IEEE {k}-bus" for k in network_options))
 
@@ -270,10 +286,9 @@ def main():
 
     if network_choice in network_options:
         net = network_options[network_choice]()  # Lazy load
-        prepare_dataset(net, f"ieee{network_choice}", config=get_config())
+        prepare_dataset(net, f"ieee{network_choice}", config=config)
     else:
         print(f"Unknown choice '{network_choice}'. Please choose from: {', '.join(network_options.keys())}")
-
-    
-if __name__=="__main__":
+ 
+if __name__ == "__main__":
     main()

@@ -17,7 +17,7 @@ load_pretrained: True  # Load pretrained model weights
 params_path: "Model/params.pth"
 
 # === Spectral Convolution ===
-output_features: 15           # G: Number of spectral filters (output features)
+output_features: 20           # G: Number of spectral filters (output features)
 poly_order: 1                 # H: Degree of the frequency-domain polynomial filter
 
 # === Training ===

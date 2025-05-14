@@ -8,4 +8,5 @@ for f in sorted(glob.glob("C:/Users/nadav/OneDrive - Technion/technion/ProjectB/
         print(os.path.basename(f), "contains NaNs")
         contain_nan = True
 
-print("Contains NaN:", contain_nan)
+if (not contain_nan):
+    print("Does not contain NaN")
