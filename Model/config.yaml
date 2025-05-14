@@ -9,20 +9,20 @@ dataset:
   network_name: "ieee14"  # Change this to the desired network name
   graph_path: "graph.npy"
   metadata_path: "meta.json"
-  test_size: 0.1         # Fraction of data to be used for testing
+  test_size: 0.05         # Fraction of data to be used for testing
 
 # === Model Settings ===
 load_pretrained: False  # Load pretrained model weights
 params_path: "Model/params.pth"
 
 # === Spectral Convolution ===
-output_features: 15           # G: Number of spectral filters (output features)
+output_features: 20           # G: Number of spectral filters (output features)
 poly_order: 1                 # H: Degree of the frequency-domain polynomial filter
 
 # === Training ===
-batch_size: 6
-num_epochs: 100
-learning_rate: 0.01
+batch_size: 32
+num_epochs: 300
+learning_rate: 0.005
 lr_decay: 0.9                 # Exponential learning rate decay - CURRENTLY NOT USED
 
 
