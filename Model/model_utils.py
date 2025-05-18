@@ -77,23 +77,43 @@ def train_model(model, train_loader, num_epochs, params_path):
 
         print(f"Epoch {epoch+1}/{num_epochs} - Loss: {epoch_loss:.4f}")
 
-    torch.save(model.state_dict(), params_path)
+    torch.save({
+        "model_state": model.state_dict(),
+        "config_signature": {
+            "output_features": model.gcn.out_features,
+            "poly_order": model.gcn.H,
+            "in_features": model.gcn.in_features
+        }
+    }, params_path)  # saving model parameters and configuration 
     print(f"Model trained and saved to {params_path}")
     
-
 
 def save_model(model, path):
     print(f"saving model in {path}")
     torch.save(model.state_dict(), path)
 
 
-def load_model(model, params_path):
+def load_model(model, params_path, train_loader, num_epochs):
     """
     Load the model and optionally train it if not using a pretrained model.
     """
-    print("Loading pretrained model...")
-
-    model.load_state_dict(torch.load(params_path))
-    model.eval()  # optional — set to eval if you're only evaluating
+    if not os.path.exists(params_path):
+        print("⚠️ Weights file not found!. Retraining...")
+        train_model(model=model, train_loader=train_loader, num_epochs=num_epochs, params_path=params_path)
     
-    print(f"Model loaded.")    
+    checkpoint = torch.load(params_path)
+    model_config = {
+        "output_features": model.gcn.out_features,
+        "poly_order": model.gcn.H,
+        "in_features": model.gcn.in_features
+    }
+    
+    if checkpoint.get("config_signature") != model_config:
+        print("⚠️ Saved weights don't match current model configuration. Retraining...")
+        train_model(model=model, train_loader=train_loader, num_epochs=num_epochs, params_path=params_path)
+        
+    else:
+        print("Loading pretrained model...")
+        model.load_state_dict(checkpoint["model_state"])
+        model.eval()
+        print(f"Model loaded.")

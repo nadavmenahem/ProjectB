@@ -28,7 +28,7 @@ lr_decay: 0.9                 # Exponential learning rate decay - CURRENTLY NOT 
 
 # === Conformal Prediction ===
 Conformal:
-  alpha: 0.1                # Significance level for conformal prediction
+  alpha: 0.1             # Significance level for conformal prediction
   topk: 3                # Number of top predictions to consider
   
 

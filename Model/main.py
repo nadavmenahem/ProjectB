@@ -55,11 +55,11 @@ def main():
             print(f"{name:30} | requires_grad: {param.requires_grad}")
 
     # 1. Training the model
-    if config.load_pretrained and os.path.exists(config.params_path):
-        load_model(model=model, params_path=config.params_path)
+    if config.load_pretrained:
+        load_model(model=model, params_path=config.params_path, train_loader=train_loader, num_epochs=config.num_epochs)
     else:
         train_model(model=model, train_loader=train_loader, num_epochs=config.num_epochs, params_path=config.params_path)
-
+    
     # 2. Conformal prediction
     conformal = ConformalPredictor(model)
 
