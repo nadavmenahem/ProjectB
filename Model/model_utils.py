@@ -119,8 +119,19 @@ def load_model(model, params_path, train_loader, num_epochs):
         print(f"Model loaded.")
 
 
-def count_parameters(model):
+def print_parameter_count(model):
     """
-    Count the number of trainable parameters in the model.
+    Print the number of parameters in each layer of the model and the total number of parameters.
     """
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total_params = 0
+    print(f"\n{'Name':30} | {'Shape':20} | {'Parameters'}")
+    print("-" * 60)
+    
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            param_count = param.numel()
+            total_params += param_count
+            print(f"{name:30} | {str(tuple(param.shape)):20} | {param_count:,}")
+
+    print("-" * 60)
+    print(f"{'Total Trainable Parameters':30} | {'':20} | {total_params:,}\n")

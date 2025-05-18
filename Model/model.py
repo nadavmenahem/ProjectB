@@ -6,32 +6,45 @@ from graph_utils import graph_spectral_decomposition
 
 
 class SpectralGCN(nn.Module):
-    def __init__(self, num_nodes, in_features, out_features, G, H, num_classes):
+    def __init__(self, num_nodes, time_samples, in_features, out_features, G, H, num_classes):
         super(SpectralGCN, self).__init__()
 
-        Lambda, GFTT  = graph_spectral_decomposition(G)
-        self.GFT = torch.tensor(GFTT.T, dtype=torch.float32)  # torch tensors
-        Lambda = torch.tensor(Lambda, dtype=torch.float32)
+        Λ, V  = graph_spectral_decomposition(G)
+        self.GFT    = torch.tensor(V.T, dtype=torch.float32)  # (N, N)
+        self.Λ      = torch.tensor(Λ,    dtype=torch.float32)  # (N,)
+        self.T      = time_samples
+        self.K      = in_features
+        self.G      = out_features
+        self.N      = num_nodes
 
         self.gcn = SpectralConvolution(
-            in_features=in_features,
-            out_features=out_features,
-            Lambda=Lambda,
-            H=H
+            time_samples = self.T,
+            in_features  = self.K,
+            out_features = self.G,
+            Lambda       = self.Λ,
+            H            = H
         )
 
         self.activation = nn.ReLU()
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(out_features * num_nodes, num_classes),
+            nn.Linear(self.G * self.N, num_classes),
             # nn.Softmax(dim=1)
         )
 
-    def forward(self, X):  # shape: (B, T, K, N) = batch, time, features, nodes
-        X_hat = torch.einsum("ij,btkj->btki", self.GFT, X)  # GFT transform on the last dim (for every sample in the batch, for every time step and for every feature)
-        # X_hat = X  # no GFT ~nadav 
-        out = self.gcn(X_hat)  # shape: (B, T, G, N)
-        out = self.activation(out)
-        out = out.mean(dim=1)  # average over time dimension (T)
-        return self.classifier(out)
+    def forward(self, X):               # X: (B, T, K, N)
+        # 1) Graph Fourier transform
+        X_hat = torch.einsum("ij,btkj->btki", self.GFT, X)  # (B, T, K, N)
+
+        # 2) Spectral conv → (B, G, N)
+        out = self.gcn(X_hat)
+        out = self.activation(out)      # still (B, G, N)
+
+        # 3) Flatten (G,N) → (G*N)
+        B = out.shape[0]
+        out = out.view(B, self.G * self.N)  # (B, G*N)
+
+        # 4) Classify
+        return self.classifier(out)     # now matches (G*N → num_classes)
+
 

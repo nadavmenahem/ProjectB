@@ -14,7 +14,7 @@ dataset:
   cal_size : 0.2         # Fraction of data to be used for calibration
 
 # === Model Settings ===
-load_pretrained: True  # Load pretrained model weights
+load_pretrained: False  # Load pretrained model weights
 params_path: "Model/params.pth"
 
 # === Spectral Convolution ===

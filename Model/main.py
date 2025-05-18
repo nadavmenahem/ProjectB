@@ -11,13 +11,13 @@ import argparse
 from plot_utils import plot_graph, plot_data, plot_test_case_probs, plot_all_buses
 from model import SpectralGCN
 from data_utils import get_data_loaders, load_dataset, get_config, get_graph, get_meta_data
-from model_utils import train_model, evaluate_model, save_model, load_model, count_parameters
+from model_utils import train_model, evaluate_model, save_model, load_model, print_parameter_count
 from conformal import ConformalPredictor
 
 
 #==================CONFIG==================
 
-RESULT_PLOTTING = True  # Set to True to plot the results
+RESULT_PLOTTING = False  # Set to True to plot the results
 DEBUGGING = True  # Set to True to enable debugging mode
 
 #==================FUNCTIONS==================
@@ -35,7 +35,8 @@ def main():
     G = get_graph(dataset_path)
 
     train_loader, cal_loader, test_loader, X_shape = get_data_loaders(dataset_path, config.batch_size, config.dataset.test_size, config.dataset.cal_size)
-    num_input_features = X_shape[2]  # K
+    # X_shape == (B, T, K, N)
+    _, time_samples, num_input_features, _ = X_shape
 
     if DEBUGGING:  
         print("DEBUGGING: X shape:", X_shape)
@@ -43,7 +44,8 @@ def main():
 
     model = SpectralGCN(
         num_nodes=G.number_of_nodes(),
-        in_features=num_input_features, # K
+        time_samples=time_samples,           # T
+        in_features=num_input_features,      # K
         out_features=config.output_features, # G
         G=G, # graph
         H=config.poly_order, # H
@@ -53,7 +55,7 @@ def main():
     if DEBUGGING:
         for name, param in model.named_parameters():
             print(f"{name:30} | requires_grad: {param.requires_grad}")
-        print(f"Total trainable parameters: {count_parameters(model):,}")
+        print_parameter_count(model)
 
     # 1. Training the model
     if config.load_pretrained:
