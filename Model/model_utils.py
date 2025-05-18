@@ -117,3 +117,10 @@ def load_model(model, params_path, train_loader, num_epochs):
         model.load_state_dict(checkpoint["model_state"])
         model.eval()
         print(f"Model loaded.")
+
+
+def count_parameters(model):
+    """
+    Count the number of trainable parameters in the model.
+    """
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)

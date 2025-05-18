@@ -2,10 +2,11 @@
 
 # === Dataset Settings ===
 dataset:
-  # path: "outage_dataset"  # Path to adjacency matrix (.npy file)
-  # path: "outage_dataset_noisy"
-  path: "outage_dataset_noisy2"
-  # path: "C:/Users/nadav/OneDrive - Technion/technion/ProjectB/Code/outage_dataset_white_noise"
+  # path: "datasets/outage_dataset"  # Path to adjacency matrix (.npy file)
+  # path: "datasets/outage_dataset_noisy"
+  path: "datasets/outage_dataset_noisy2"
+  # path: "datasets/outage_dataset_white_noise"
+  # path: "datasets/outage_dataset_noisy_ou"
   network_name: "ieee14"  # Change this to the desired network name
   graph_path: "graph.npy"
   metadata_path: "meta.json"

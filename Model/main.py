@@ -11,14 +11,14 @@ import argparse
 from plot_utils import plot_graph, plot_data, plot_test_case_probs, plot_all_buses
 from model import SpectralGCN
 from data_utils import get_data_loaders, load_dataset, get_config, get_graph, get_meta_data
-from model_utils import train_model, evaluate_model, save_model, load_model
+from model_utils import train_model, evaluate_model, save_model, load_model, count_parameters
 from conformal import ConformalPredictor
 
 
 #==================CONFIG==================
 
 RESULT_PLOTTING = True  # Set to True to plot the results
-DEBUGGING = False  # Set to True to enable debugging mode
+DEBUGGING = True  # Set to True to enable debugging mode
 
 #==================FUNCTIONS==================
 
@@ -53,6 +53,7 @@ def main():
     if DEBUGGING:
         for name, param in model.named_parameters():
             print(f"{name:30} | requires_grad: {param.requires_grad}")
+        print(f"Total trainable parameters: {count_parameters(model):,}")
 
     # 1. Training the model
     if config.load_pretrained:

@@ -106,22 +106,29 @@ def plot_test_case_probs(probs, true_labels, case_idx, topk_indices=None, confor
 
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    # Plot predicted probabilities
-    ax.bar(x - width/2, probs, width, label='Predicted Probability', color='blue', alpha=0.7)
+    # Default all bars to blue, override top-k later
+    bar_colors = ['blue'] * num_lines
+    k = len(topk_indices) if topk_indices is not None else 0
+    topk_label_added = False
+
+    if topk_indices is not None:
+        for idx in topk_indices:
+            bar_colors[idx] = 'green'
+
+    # Plot predicted probabilities with updated colors
+    ax.bar(x - width/2, probs, width, label='Predicted Probability', color=bar_colors, alpha=0.7)
 
     # Plot true labels
     ax.bar(x + width/2, true_labels, width, label='True Label (Normalized)', color='orange', alpha=0.7)
 
-    # Plot vertical lines for top-k predictions
-    if topk_indices is not None:
-        for idx in topk_indices:
-            ax.axvline(x=idx, color='green', linestyle='--', alpha=0.6,
-                       label='Top-k Prediction' if idx == topk_indices[0] else None)
+    # Add dummy line to legend for "Top {k}"
+    if topk_indices is not None and k > 0:
+        ax.bar(-1, 0, color='green', alpha=0.7, label=f'Top {k}')  # dummy bar for legend
 
-    # Plot vertical lines for conformal prediction set
+    # Plot vertical lines for conformal prediction set (same style as top-k)
     if conformal_set is not None:
         for idx in conformal_set:
-            ax.axvline(x=idx, color='purple', linestyle=':', alpha=0.3,
+            ax.axvline(x=idx, color='green', linestyle=':', alpha=0.3,
                        label='Conformal Set' if idx == conformal_set[0] else None)
 
     # De-duplicate legend entries

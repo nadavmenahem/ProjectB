@@ -13,7 +13,7 @@ import glob
 
 def gen_ou_noise(n_steps, n_buses, dt, sigma, tau):
     """
-    Generate Ornstein–Uhlenbeck noise for one trajectory.
+    Generate Ornstein-Uhlenbeck noise for one trajectory.
     theta_{t+1} = theta_t * (1 - dt/tau) + sigma * sqrt(dt) * N(0,1)
     Returns shape (n_steps, n_buses).
     """
