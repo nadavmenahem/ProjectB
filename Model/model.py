@@ -32,7 +32,7 @@ class SpectralGCN(nn.Module):
             # nn.Softmax(dim=1)
         )
 
-    def forward(self, X):               # X: (B, T, K, N)
+    def forward(self, X):               # X: (B, T, K, N)=(batch, time, features, nodes)
         # 1) Graph Fourier transform
         X_hat = torch.einsum("ij,btkj->btki", self.GFT, X)  # (B, T, K, N)
 
@@ -42,6 +42,7 @@ class SpectralGCN(nn.Module):
 
         # 3) Flatten (G,N) → (G*N)
         B = out.shape[0]
+        # NOT GOOD! should be self.G*self.N ~nadav
         out = out.view(B, self.G * self.N)  # (B, G*N)
 
         # 4) Classify
