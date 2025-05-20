@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 
-def evaluate_model(model, loader, threshold=0.2):
+def evaluate_model(model, loader, threshold=0.2, k=3):
     print("\nEvaluating on test set...")
 
     model.eval()
@@ -42,7 +42,10 @@ def evaluate_model(model, loader, threshold=0.2):
     # Simple case-level accuracy
     case_matches = (y_pred == y_true).all(axis=1)
     case_accuracy = case_matches.sum() / case_matches.shape[0]
+    top_k_accuracy = (y_pred[:, :k] == y_true[:, :k]).all(axis=1).sum() / case_matches.shape[0]
+
     print(f"✅ Simple Case Accuracy: {case_accuracy*100:.2f}% ({case_matches.sum()}/{case_matches.shape[0]})")
+    print(f"✅ Top-{k} Accuracy: {top_k_accuracy*100:.2f}% ({(y_pred[:, :k] == y_true[:, :k]).all(axis=1).sum()}/{case_matches.shape[0]})")
  
     return y_probs, y_true, y_pred
 
@@ -80,9 +83,9 @@ def train_model(model, train_loader, num_epochs, params_path):
     torch.save({
         "model_state": model.state_dict(),
         "config_signature": {
-            "output_features": model.gcn.out_features,
+            "output_features": model.gcn.G,
             "poly_order": model.gcn.H,
-            "in_features": model.gcn.in_features
+            "in_features": model.gcn.K
         }
     }, params_path)  # saving model parameters and configuration 
     print(f"Model trained and saved to {params_path}")
@@ -103,9 +106,9 @@ def load_model(model, params_path, train_loader, num_epochs):
     
     checkpoint = torch.load(params_path)
     model_config = {
-        "output_features": model.gcn.out_features,
+        "output_features": model.gcn.G,
         "poly_order": model.gcn.H,
-        "in_features": model.gcn.in_features
+        "in_features": model.gcn.K
     }
     
     if checkpoint.get("config_signature") != model_config:

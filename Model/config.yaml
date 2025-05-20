@@ -4,9 +4,10 @@
 dataset:
   # path: "datasets/outage_dataset"  # Path to adjacency matrix (.npy file)
   # path: "datasets/outage_dataset_noisy"
-  path: "datasets/outage_dataset_noisy2"
+  # path: "datasets/outage_dataset_noisy2"
   # path: "datasets/outage_dataset_white_noise"
   # path: "datasets/outage_dataset_noisy_ou"
+  path: "datasets/outage_dataset_with_loads" 
   network_name: "ieee14"  # Change this to the desired network name
   graph_path: "graph.npy"
   metadata_path: "meta.json"
@@ -14,16 +15,16 @@ dataset:
   cal_size : 0.2         # Fraction of data to be used for calibration
 
 # === Model Settings ===
-load_pretrained: False  # Load pretrained model weights
+load_pretrained: True  # Load pretrained model weights
 params_path: "Model/params.pth"
 
 # === Spectral Convolution ===
-output_features: 20           # G: Number of spectral filters (output features)
+output_features: 10           # G: Number of spectral filters (output features)
 poly_order: 1                 # H: Degree of the frequency-domain polynomial filter
 
 # === Training ===
 batch_size: 16
-num_epochs: 80
+num_epochs: 20
 learning_rate: 0.01
 lr_decay: 0.9                 # Exponential learning rate decay - CURRENTLY NOT USED
 

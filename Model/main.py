@@ -17,8 +17,8 @@ from conformal import ConformalPredictor
 
 #==================CONFIG==================
 
-RESULT_PLOTTING = False  # Set to True to plot the results
-DEBUGGING = True  # Set to True to enable debugging mode
+RESULT_PLOTTING = True  # Set to True to plot the results
+DEBUGGING = False  # Set to True to enable debugging mode
 
 #==================FUNCTIONS==================
 
@@ -68,9 +68,15 @@ def main():
 
     conformal.calibrate(cal_loader)
 
+    all_sets = []
+    all_top3 = []
+
     for i, (x_batch, y_batch) in enumerate(test_loader):
         sets, probs, pvals = conformal.predict(x_batch, alpha=config.Conformal.alpha, return_probs=True, return_pvals=True)
         top3_lines = conformal.predict_top_k(x_batch, k=3)
+
+        all_sets.append(sets)
+        all_top3.append(top3_lines)
 
         for j in range(x_batch.shape[0]):
             sample_idx = i * config.batch_size + j
@@ -79,16 +85,19 @@ def main():
             conformal_set = np.where(sets[j])[0].tolist()
             set_size = len(conformal_set)
 
-            print(f"\n🧪 Sample {sample_idx}")
-            print(f"  Ground truth: {true_outages}")
-            print(f"  Top-3 predicted: {predicted_top3}")
-            print(f"  Conformal set: {conformal_set} (size = {set_size})")
-            print(f"  Max probability: {np.max(probs[j]):.2f}")
+            if DEBUGGING:
+                print(f"\n🧪 Sample {sample_idx}")
+                print(f"  Ground truth: {true_outages}")
+                print(f"  Top-3 predicted: {predicted_top3}")
+                print(f"  Conformal set: {conformal_set} (size = {set_size})")
+                print(f"  Max probability: {np.max(probs[j]):.2f}")
 
+    # Convert accumulated results to full arrays
+    all_sets = np.concatenate(all_sets, axis=0)     # shape: (total_samples, n_lines)
+    all_top3 = np.concatenate(all_top3, axis=0)     # shape: (total_samples, 3)
 
-
-    # 3. Evaluate the model``
-    y_probs, y_true, y_pred = evaluate_model(model, test_loader)
+    # 3. Evaluate the model
+    y_probs, y_true, y_pred = evaluate_model(model, test_loader, k=config.Conformal.topk)
 
     if DEBUGGING:
         print("\nGround truth fault labels for test cases:")
@@ -100,11 +109,11 @@ def main():
     if RESULT_PLOTTING:
         for i in range(len(y_probs)):
             plot_test_case_probs(
-                y_probs[i],
-                y_true[i],
-                i,
-                topk_indices=top3_lines[i],
-                conformal_set=np.where(sets[i])[0].tolist()
+                probs=y_probs[i],
+                true_labels=y_true[i],
+                case_idx=i,
+                topk_indices=all_top3[i],
+                conformal_set=np.where(all_sets[i])[0].tolist()
             )
 
 

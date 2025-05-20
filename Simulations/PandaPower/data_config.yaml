@@ -1,9 +1,9 @@
 # Configuration file for the generate_noisy_data.py script (and not for generate_data.py)
 
-TOTAL_TIME: 200  # seconds
-SAMPLING_RATE: 8  # Hz
+TOTAL_TIME: 50  # seconds
+SAMPLING_RATE: 1  # Hz
 NUM_CASES: 20  # Currently not being used
-OUTAGE_TIME: 100  # seconds
-DATA_ROOT: "outage_dataset_noisy"  # Path to save the dataset
+OUTAGE_TIME: 25  # seconds
+DATA_ROOT: "datasets/outage_dataset_with_loads"  # Path to save the dataset
 NOISE_SCALE: 0.03  # Scale of noise to be added to loads
-MULTIPLICITY: 6  # Number of cases to generate for each line outage
+MULTIPLICITY: 100  # Number of cases to generate for each line outage
