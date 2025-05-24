@@ -4,6 +4,7 @@ TOTAL_TIME: 50  # seconds
 SAMPLING_RATE: 1  # Hz
 NUM_CASES: 20  # Currently not being used
 OUTAGE_TIME: 25  # seconds
-DATA_ROOT: "datasets/outage_dataset_with_loads"  # Path to save the dataset
+DATA_ROOT: "datasets/outage_dataset_with_loads_N2"  # Path to save the dataset
 NOISE_SCALE: 0.03  # Scale of noise to be added to loads
-MULTIPLICITY: 100  # Number of cases to generate for each line outage
+MULTIPLICITY: 20  # Number of cases to generate for each line outage
+N2_CONTINGENCY: True     # N-1 or N-2 contingency

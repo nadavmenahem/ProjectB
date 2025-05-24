@@ -183,7 +183,7 @@ def set_branch_status(net, idx, status=True):
 
 
 
-def generate_outage_cases(net, multiplicity=2):
+def generate_outage_cases(net, multiplicity=2, contingency=False):
     """
     Generate the outage cases with either 1 outage or no outage at all.
     return a list of lists, where each inner list contains the indices of the lines that are outaged.
@@ -199,6 +199,13 @@ def generate_outage_cases(net, multiplicity=2):
     for line in range(num_lines):
         for _ in range(multiplicity):
             outage_cases.append([line])
+
+    # Generate 2-line outages
+    if contingency:
+        for line1 in range(num_lines):
+            for line2 in range(line1 + 1, num_lines):
+                for _ in range(multiplicity):
+                    outage_cases.append([line1, line2])
 
     # cleaning the cases a bit... some are regular ints and some are np.int32
     outage_cases = [[int(line) for line in case] for case in outage_cases]  # Convert to int
@@ -260,7 +267,7 @@ def prepare_dataset(net, name, config):
     save_metadata(net, save_path, config)
 
     # outage_cases = generate_outage_cases(net, num_cases=config.NUM_CASES, multiplicity=config.MULTIPLICITY)
-    outage_cases = generate_outage_cases(net, multiplicity=config.MULTIPLICITY)
+    outage_cases = generate_outage_cases(net, multiplicity=config.MULTIPLICITY, contingency=config.N2_CONTINGENCY)
     print(f"Generated outage cases for {name}: {outage_cases}")
 
     if SIMULATION:
