@@ -16,8 +16,10 @@ dataset:
   cal_size : 0.2         # Fraction of data to be used for calibration
 
 # === Model Settings ===
-load_pretrained: True  # Load pretrained model weights
-params_path: "Model/params.pth"
+model:
+  load_pretrained: False  # Load pretrained model weights
+  type: "dft"      # Specify the model type ("dft", "gft")
+  params_path: "Model/params.pth"
 
 # === Spectral Convolution ===
 output_features: 10           # G: Number of spectral filters (output features)

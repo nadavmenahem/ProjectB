@@ -1,5 +1,5 @@
 import os
-from sklearn.metrics import precision_score, recall_score, f1_score
+# from sklearn.metrics import precision_score, recall_score, f1_score
 import torch
 import torch.nn as nn
 
@@ -32,12 +32,12 @@ def evaluate_model(model, loader, threshold=0.2, k=3):
     y_true_bin = (y_true > 0).astype(int)
 
     # Macro (global) precision/recall/F1
-    precision = precision_score(y_true_bin, y_pred, average="macro", zero_division=0)
-    recall = recall_score(y_true_bin, y_pred, average="macro", zero_division=0)
-    f1 = f1_score(y_true_bin, y_pred, average="macro", zero_division=0)
+    # precision = precision_score(y_true_bin, y_pred, average="macro", zero_division=0)
+    # recall = recall_score(y_true_bin, y_pred, average="macro", zero_division=0)
+    # f1 = f1_score(y_true_bin, y_pred, average="macro", zero_division=0)
 
-    print("\n🔢 Macro-Average (Overall):")
-    print(f"Precision = {precision:.3f}, Recall = {recall:.3f}, F1 = {f1:.3f}")
+    # print("\n🔢 Macro-Average (Overall):")
+    # print(f"Precision = {precision:.3f}, Recall = {recall:.3f}, F1 = {f1:.3f}")
 
     # Simple case-level accuracy
     case_matches = (y_pred == y_true).all(axis=1)
@@ -67,6 +67,8 @@ def train_model(model, train_loader, num_epochs, params_path):
         for x_batch, y_batch in train_loader:
             # Forward pass
             logits = model(x_batch)  # shape: (B, num_lines)
+            # print("🔍 Logits stats — min:", logits.min().item(), "max:", logits.max().item())
+            # print("🔍 Y_batch stats — min:", y_batch.min().item(), "max:", y_batch.max().item())
 
             # Compute loss
             loss = criterion(torch.log_softmax(logits, dim=1), y_batch)  # KLDivLoss expects log probabilities

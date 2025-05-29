@@ -42,7 +42,6 @@ class SpectralGCN(nn.Module):
 
         # 3) Flatten (G,N) → (G*N)
         B = out.shape[0]
-        # NOT GOOD! should be self.G*self.N ~nadav
         out = out.view(B, self.G * self.N)  # (B, G*N)
 
         # 4) Classify

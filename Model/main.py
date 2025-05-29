@@ -10,6 +10,7 @@ import argparse
 
 from plot_utils import plot_graph, plot_data, plot_test_case_probs, plot_all_buses
 from model import SpectralGCN
+from model_dft import DFTSpectralGCN
 from data_utils import get_data_loaders, load_dataset, get_config, get_graph, get_meta_data
 from model_utils import train_model, evaluate_model, save_model, load_model, print_parameter_count
 from conformal import ConformalPredictor
@@ -42,26 +43,46 @@ def main():
         print("DEBUGGING: X shape:", X_shape)
         print("DEBUGGING: num_input_features:", num_input_features)
 
-    model = SpectralGCN(
-        num_nodes=G.number_of_nodes(),
-        time_samples=time_samples,           # T
-        in_features=num_input_features,      # K
-        out_features=config.output_features, # G
-        G=G, # graph
-        H=config.poly_order, # H
-        num_classes=G.number_of_edges() # one output per power line
-    )
+    if config.model.type == 'gft':
+        model = SpectralGCN(
+            num_nodes=G.number_of_nodes(),
+            time_samples=time_samples,           # T
+            in_features=num_input_features,      # K
+            out_features=config.output_features, # G
+            G=G, # graph
+            H=config.poly_order, # H
+            num_classes=G.number_of_edges() # one output per power line
+        )
+        base, ext = os.path.splitext(config.model.params_path)
+        params_path = f"{base}_gft{ext}"
 
-    if DEBUGGING:
+    elif config.model.type == 'dft':
+        model = DFTSpectralGCN(
+            num_nodes=G.number_of_nodes(),
+            time_samples=time_samples,           # T
+            in_features=num_input_features,      # K
+            out_features=config.output_features, # G
+            G=G, # graph
+            H=config.poly_order, # H
+            num_classes=G.number_of_edges() # one output per power line
+        )
+        base, ext = os.path.splitext(config.model.params_path)
+        params_path = f"{base}_dft{ext}"
+
+    else:
+        raise ValueError(f"Unknown model type: {config.model.type}. Supported types are 'gft' and 'dft'.")
+
+    # if DEBUGGING:
+    if True:
         for name, param in model.named_parameters():
             print(f"{name:30} | requires_grad: {param.requires_grad}")
         print_parameter_count(model)
 
     # 1. Training the model
-    if config.load_pretrained:
-        load_model(model=model, params_path=config.params_path, train_loader=train_loader, num_epochs=config.num_epochs)
+    if config.model.load_pretrained:
+        load_model(model=model, params_path=params_path, train_loader=train_loader, num_epochs=config.num_epochs)
     else:
-        train_model(model=model, train_loader=train_loader, num_epochs=config.num_epochs, params_path=config.params_path)
+        train_model(model=model, train_loader=train_loader, num_epochs=config.num_epochs, params_path=params_path)
     
     # 2. Conformal prediction
     conformal = ConformalPredictor(model)
@@ -86,7 +107,7 @@ def main():
             set_size = len(conformal_set)
 
             if DEBUGGING:
-                print(f"\n🧪 Sample {sample_idx}")
+                print(f"\n Sample {sample_idx}")
                 print(f"  Ground truth: {true_outages}")
                 print(f"  Top-3 predicted: {predicted_top3}")
                 print(f"  Conformal set: {conformal_set} (size = {set_size})")
