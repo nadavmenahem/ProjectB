@@ -2,8 +2,8 @@ import os
 import numpy as np
 import argparse
 
-from data_utils import get_config, load_dataset, get_meta_data
-from plot_utils import plot_all_buses
+from utils.data_utils import get_config, load_dataset, get_meta_data
+from utils.plot_utils import plot_all_buses
 
 CASE_NUMBER = 5  # The case number to plot
 

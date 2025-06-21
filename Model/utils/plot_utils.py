@@ -16,7 +16,8 @@ def plot_data(angles, bus_index, total_time=200, sampling_rate=8, outage_time=10
 
     plt.figure(figsize=(10, 5))
     plt.plot(time_vector, angles, label=f"Bus {bus_index}", color='b')
-    plt.axvline(x=outage_time, color='r', linestyle='--', label=f"Outage at {outage_time}s")
+    if outage_time is not None:
+        plt.axvline(x=outage_time, color='r', linestyle='--', label=f"Outage at {outage_time}s")
     plt.xlabel("Time (s)")
     plt.ylabel("Phasor Angle (degrees)")
     plt.title(f"Phasor Angle of Bus {bus_index} Over Time")
@@ -101,48 +102,56 @@ def plot_graph(G, signal=None, numbering=False, faulty_lines=None):
 def plot_test_case_probs(probs, true_labels, case_idx, topk_indices=None, conformal_set=None):
     num_lines = len(probs)
     x = np.arange(num_lines)
+    width = 0.35
 
-    width = 0.35  # width of the bars
+    k = len(topk_indices) if topk_indices is not None else 1
 
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    # Default all bars to blue, override top-k later
-    bar_colors = ['blue'] * num_lines
-    k = len(topk_indices) if topk_indices is not None else 0
-    topk_label_added = False
-
-    if topk_indices is not None:
-        for idx in topk_indices:
-            bar_colors[idx] = 'green'
-
-    # Plot predicted probabilities with updated colors
-    ax.bar(x - width/2, probs, width, label='Predicted Probability', color=bar_colors, alpha=0.7)
-
-    # Plot true labels
+    # Plot bars
+    ax.bar(x - width/2, probs, width, label='Predicted Probability', color='blue', alpha=0.7)
     ax.bar(x + width/2, true_labels, width, label='True Label (Normalized)', color='orange', alpha=0.7)
 
-    # Add dummy line to legend for "Top {k}"
-    if topk_indices is not None and k > 0:
-        ax.bar(-1, 0, color='green', alpha=0.7, label=f'Top {k}')  # dummy bar for legend
-
-    # Plot vertical lines for conformal prediction set (same style as top-k)
+    # Plot vertical lines for conformal set
     if conformal_set is not None:
         for idx in conformal_set:
-            ax.axvline(x=idx, color='green', linestyle=':', alpha=0.3,
-                       label='Conformal Set' if idx == conformal_set[0] else None)
+            ax.axvline(
+                x=idx,
+                color='purple',         # high‐contrast
+                linestyle='-',          # solid line
+                linewidth=2.5,          # extra bold
+                alpha=0.9,              # nearly opaque
+                label='Conformal Set' if idx == conformal_set[0] else None
+            )
 
-    # De-duplicate legend entries
+    # Correct prediction?
+    true_indices = np.where(true_labels > 0.1)[0]
+    pred_indices = topk_indices if topk_indices is not None else np.argsort(probs)[::-1][:1]
+    is_correct = set(true_indices).issubset(set(pred_indices))
+    result_str = "Correct prediction" if is_correct else "Incorrect prediction"
+    ax.set_title(f"Test Case {case_idx}: Prediction vs Ground Truth ({result_str})")
+
+    # Basic x-ticks
+    ax.set_xticks(x)
+    ax.set_xticklabels([str(i) for i in range(num_lines)])
+
+    # Bold and color top-k indices
+    if topk_indices is not None:
+        fig.canvas.draw()  # ← Needed to populate tick labels
+        tick_labels = ax.get_xticklabels()
+        for i in topk_indices:
+            tick_labels[i].set_color('red')
+            tick_labels[i].set_fontweight('bold')
+
+    ax.set_xlabel(f"Line Index (Top-{k} in red)")
+    ax.set_ylabel("Value")
+    ax.set_ylim(0, 1)
+    ax.grid(True)
+
+    # Clean legend
     handles, labels = ax.get_legend_handles_labels()
     unique = dict(zip(labels, handles))
     ax.legend(unique.values(), unique.keys())
-
-    ax.set_xticks(x)
-    ax.set_xticklabels([str(i) for i in range(num_lines)])
-    ax.set_xlabel("Line Index")
-    ax.set_ylabel("Value")
-    ax.set_title(f"Test Case {case_idx}: Prediction vs Ground Truth")
-    ax.set_ylim(0, 1)
-    ax.grid(True)
 
     plt.tight_layout()
     plt.show()

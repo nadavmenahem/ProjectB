@@ -1,8 +1,9 @@
 import numpy as np, glob, os, itertools as it
 
 
-DELETE_NAN = True
-PATH = "datasets/outage_dataset_with_loads_N2/ieee14" 
+DELETE_NAN = False
+# PATH = "datasets/outage_dataset_with_loads_N2/ieee14" 
+PATH = "datasets/N-2_random_outage_time/ieee14" 
 
 
 contain_nan = False

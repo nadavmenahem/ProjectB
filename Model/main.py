@@ -8,23 +8,28 @@ import torch
 import torch.nn as nn
 import argparse
 
-from plot_utils import plot_graph, plot_data, plot_test_case_probs, plot_all_buses
 from model import SpectralGCN
 from model_dft import DFTSpectralGCN
-from data_utils import get_data_loaders, load_dataset, get_config, get_graph, get_meta_data
-from model_utils import train_model, evaluate_model, save_model, load_model, print_parameter_count
+from utils.plot_utils import plot_graph, plot_data, plot_test_case_probs, plot_all_buses
+from utils.data_utils import get_data_loaders, load_dataset, get_config, get_graph, get_meta_data
+from utils.model_utils import train_model, evaluate_model, save_model, load_model, print_parameter_count
 from conformal import ConformalPredictor
 
 
-#==================CONFIG==================
+# ==================DEVICE==================
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")  # remove if you want to use GPU
 
+
+#==================CONFIG==================
 RESULT_PLOTTING = True  # Set to True to plot the results
 DEBUGGING = False  # Set to True to enable debugging mode
 
-#==================FUNCTIONS==================
 
 #=====================MAIN====================
 def main():
+    print(f"\nUsing device: {device}\n")
+
     parser = argparse.ArgumentParser(description="Spectral GCN for line outage identification")
     parser.add_argument('-c', '--config', type=str, default=None,
                         help='Path to a config.yaml file')
@@ -43,6 +48,8 @@ def main():
         print("DEBUGGING: X shape:", X_shape)
         print("DEBUGGING: num_input_features:", num_input_features)
 
+    params_path = os.path.join(config.model.params_folder, f"{config.model.type}.pth")
+
     if config.model.type == 'gft':
         model = SpectralGCN(
             num_nodes=G.number_of_nodes(),
@@ -53,8 +60,6 @@ def main():
             H=config.poly_order, # H
             num_classes=G.number_of_edges() # one output per power line
         )
-        base, ext = os.path.splitext(config.model.params_path)
-        params_path = f"{base}_gft{ext}"
 
     elif config.model.type == 'dft':
         model = DFTSpectralGCN(
@@ -66,11 +71,11 @@ def main():
             H=config.poly_order, # H
             num_classes=G.number_of_edges() # one output per power line
         )
-        base, ext = os.path.splitext(config.model.params_path)
-        params_path = f"{base}_dft{ext}"
 
     else:
         raise ValueError(f"Unknown model type: {config.model.type}. Supported types are 'gft' and 'dft'.")
+
+    model.to(device)
 
     # if DEBUGGING:
     if True:
@@ -78,14 +83,14 @@ def main():
             print(f"{name:30} | requires_grad: {param.requires_grad}")
         print_parameter_count(model)
 
-    # 1. Training the model
+    # Training the model
     if config.model.load_pretrained:
-        load_model(model=model, params_path=params_path, train_loader=train_loader, num_epochs=config.num_epochs)
+        load_model(model=model, params_path=params_path)
     else:
-        train_model(model=model, train_loader=train_loader, num_epochs=config.num_epochs, params_path=params_path)
+        train_model(model, train_loader, config, params_path, test_loader=test_loader)
     
-    # 2. Conformal prediction
-    conformal = ConformalPredictor(model)
+    # Conformal prediction
+    conformal = ConformalPredictor(model, loss_name=config.loss_function)
 
     conformal.calibrate(cal_loader)
 
@@ -93,7 +98,7 @@ def main():
     all_top3 = []
 
     for i, (x_batch, y_batch) in enumerate(test_loader):
-        sets, probs, pvals = conformal.predict(x_batch, alpha=config.Conformal.alpha, return_probs=True, return_pvals=True)
+        sets, probs, pvals = conformal.predict(x_batch, alpha=config.alpha, return_probs=True, return_pvals=True)
         top3_lines = conformal.predict_top_k(x_batch, k=3)
 
         all_sets.append(sets)
@@ -117,23 +122,20 @@ def main():
     all_sets = np.concatenate(all_sets, axis=0)     # shape: (total_samples, n_lines)
     all_top3 = np.concatenate(all_top3, axis=0)     # shape: (total_samples, 3)
 
-    # 3. Evaluate the model
-    y_probs, y_true, y_pred = evaluate_model(model, test_loader, k=config.Conformal.topk)
-
-    if DEBUGGING:
-        print("\nGround truth fault labels for test cases:")
-        for i, labels in enumerate(y_true):
-            faulty_lines = np.where(labels > 0)[0]  # indices where line is faulty
-            print(f"Test case {i}: Faulty lines = {faulty_lines.tolist()}")
-            print("prediction: ", y_pred[i])
+    # Evaluate the model
+    y_probs, y_true, topk_idx, correct, total = evaluate_model(
+        model, test_loader, config.loss_function, k=config.topk
+    )
+    if config.model.load_pretrained:
+        print(f"Test Top-{config.topk} Accuracy: {(correct/total)*100:.2f}% ({correct}/{total})")
 
     if RESULT_PLOTTING:
-        for i in range(len(y_probs)):
+        for i, (probs, true_labels, topk) in enumerate(zip(y_probs, y_true, topk_idx)):
             plot_test_case_probs(
-                probs=y_probs[i],
-                true_labels=y_true[i],
-                case_idx=i,
-                topk_indices=all_top3[i],
+                probs=probs,                      # model’s predicted probabilities
+                true_labels=true_labels,          # ground-truth binary vector
+                case_idx=i,                       # index of this test case
+                topk_indices=topk.tolist(),       # your top-k predictions
                 conformal_set=np.where(all_sets[i])[0].tolist()
             )
 

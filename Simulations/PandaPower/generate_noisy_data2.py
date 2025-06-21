@@ -1,6 +1,5 @@
 """
-this script is identical to generate_data.py, but with the addition of noise to the loads.
-The noise is added to the loads in the simulate_power_flow function.
+this script is identical to generate_noisy_data.py, but with the addition of random outage time.
 """
 
 
@@ -96,65 +95,87 @@ def get_num_lines(net):
     return len(net.line) + len(net.trafo) + len(net.trafo3w)  # Total number of lines and transformers
 
 
-def Simulation(net, outage_cases, save_path, config):
-    print("Simulation started")
 
-    # num_lines = len(net.line)
+def Simulation(net, outage_cases, save_path, config):
+    """
+    This function runs the simulation for each outage case.
+    It simulates the power flow for each outage case and saves the results.
+    If config.outagetime is None, the function generates a random outage time for each case,
+    which is used to determine when the outage occurs during the simulation.
+    It saves the results in a .npz file and the outage times in a JSON file.
+    """
+    
+    print("Simulation started")
     num_lines = get_num_lines(net)
+    outage_times_dict = {}
+
+    total_steps = config.TOTAL_TIME * config.SAMPLING_RATE
+    edge_margin = 10
+    min_step = edge_margin
+    max_step = total_steps - edge_margin
 
     for i, outage in enumerate(outage_cases):
         print(f"Simulation {i+1} started | Outage lines: {outage}")
 
-        # Label vector: 1 where the line is outaged
         Y = np.zeros(num_lines, dtype=np.int32)
         for line in outage:
             Y[line] = 1
 
-        # make a fresh network for each case
-        net_case = copy.deepcopy(net) # load is not preserved from the previous case and lines are not outaged
+        net_case = copy.deepcopy(net)
 
-        data = simulate_power_flow(net_case, outage_lines=outage, total_time=config.TOTAL_TIME, sampling_rate=config.SAMPLING_RATE,
-                                   outage_time=config.OUTAGE_TIME, noise_scale=config.NOISE_SCALE)
-        X = data.values.astype(np.float32)  # shape: [1600, num_buses]
+        outage_step = np.random.randint(min_step, max_step)
+        outage_time = outage_step / config.SAMPLING_RATE
 
-        cases_folder = os.path.join(save_path, "cases")
-        os.makedirs(cases_folder, exist_ok=True)
+        if config.OUTAGE_TIME is not None:
+            outage_time = config.OUTAGE_TIME
 
-        filename = os.path.join(cases_folder, f"case_{i:03d}.npz")
-        np.savez(filename, x=X, y=Y)
+        data = simulate_power_flow(
+            net_case,
+            outage_lines=outage,
+            total_time=config.TOTAL_TIME,
+            sampling_rate=config.SAMPLING_RATE,
+            outage_time=outage_time,
+            noise_scale=config.NOISE_SCALE
+        )
+
+        X = data.values.astype(np.float32)
+        filename = f"case_{i:03d}.npz"
+        np.savez(os.path.join(save_path, "cases", filename), x=X, y=Y)
+
+        outage_times_dict[filename] = outage_time
         print(f"Saved simulation to {filename}")
+
+    with open(os.path.join(save_path, "outage_times.json"), "w") as f:
+        json.dump(outage_times_dict, f, indent=4)
 
     print("Simulation completed")
 
 
 def simulate_power_flow(net, outage_lines, total_time=200, sampling_rate=8, outage_time=100, noise_scale=0.05):
-    timesteps = total_time * sampling_rate  # Total number of time steps
-    
-    data = pd.DataFrame(index=range(timesteps), columns=range(len(net.bus)))  # DataFrame to store results
+    timesteps = total_time * sampling_rate
+    outage_step = int(outage_time * sampling_rate)
+    print(f"Using outage_time = {outage_time:.2f}s (step {outage_step})")
+
+    data = pd.DataFrame(index=range(timesteps), columns=range(len(net.bus)))
 
     for t in range(timesteps):
-        if t == outage_time * sampling_rate:  # Apply line outage at OUTAGE_TIME sec
+        if t == outage_step:
             for line in outage_lines:
                 set_branch_status(net, line, status=False)
                 print(f"Line {line} outaged at t={t/sampling_rate} s")
 
-        # this is the difference between the scripts ~nadav
         if len(net.load):
             noise_p = np.random.uniform(-noise_scale, noise_scale, size=len(net.load))
             noise_q = np.random.uniform(-noise_scale, noise_scale, size=len(net.load))
-            net.load['p_mw']   *= (1 + noise_p)
+            net.load['p_mw'] *= (1 + noise_p)
             net.load['q_mvar'] *= (1 + noise_q)
 
-        # in order to handle more noise (otherwise will not converge) ~nadav
         try:
             pp.runpp(net, max_iteration=50)
+            data.iloc[t] = net.res_bus.va_degree.values
         except Exception as e:
             print(f"Power flow failed at t={t}: {e}")
             data.iloc[t] = np.nan
-            continue
-        # pp.runpp(net)  # Run power flow
-
-        data.iloc[t] = net.res_bus.va_degree.values  # Store bus angles
 
     return data
 

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from spectralConv import SpectralConvolution
-from graph_utils import graph_spectral_decomposition
+from utils.graph_utils import graph_spectral_decomposition
 
 
 class SpectralGCN(nn.Module):
@@ -32,7 +32,16 @@ class SpectralGCN(nn.Module):
             # nn.Softmax(dim=1)
         )
 
+
+    @property
+    def device(self):
+        # grabs the device of the first parameter
+        return next(self.parameters()).device
+
+
     def forward(self, X):               # X: (B, T, K, N)=(batch, time, features, nodes)
+        X = X.to(self.device)
+
         # 1) Graph Fourier transform
         X_hat = torch.einsum("ij,btkj->btki", self.GFT, X)  # (B, T, K, N)
 

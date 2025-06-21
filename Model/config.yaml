@@ -8,40 +8,45 @@ dataset:
   # path: "datasets/outage_dataset_white_noise"
   # path: "datasets/outage_dataset_noisy_ou"
   # path: "datasets/outage_dataset_with_loads" 
-  path: "datasets/outage_dataset_with_loads_N2" 
+  # path: "datasets/outage_dataset_with_loads_N2" 
+  # path: "datasets/N-2_random_outage_time"  # too much...
+  path: "datasets/N-2_random_outage_time2"
   network_name: "ieee14"  # Change this to the desired network name
   graph_path: "graph.npy"
   metadata_path: "meta.json"
-  test_size: 0.1         # Fraction of data to be used for testing
-  cal_size : 0.2         # Fraction of data to be used for calibration
+  test_size: 0.05         # Fraction of data to be used for testing
+  cal_size : 0.1         # Fraction of data to be used for calibration
 
 # === Model Settings ===
 model:
   load_pretrained: False  # Load pretrained model weights
   type: "dft"      # Specify the model type ("dft", "gft")
-  params_path: "Model/params.pth"
+  params_folder: "Model/params"
 
 # === Spectral Convolution ===
-output_features: 10           # G: Number of spectral filters (output features)
+output_features: 20           # G: Number of spectral filters (output features)
 poly_order: 1                 # H: Degree of the frequency-domain polynomial filter
 
 # === Training ===
-batch_size: 16
-num_epochs: 20
+batch_size: 64
+num_epochs: 25
 learning_rate: 0.01
-lr_decay: 0.9                 # Exponential learning rate decay - CURRENTLY NOT USED
+lr_decay: 0.9             # Exponential learning rate decay - CURRENTLY NOT USED
+epsilon: 0.9              # smoothing the labels (for both losses)
 
 # === Conformal Prediction ===
-Conformal:
-  alpha: 0.1             # Significance level for conformal prediction
-  topk: 3                # Number of top predictions to consider
+alpha: 0.1             # Significance level for conformal prediction
+topk: 3                # Number of top predictions to consider
   
+# === Optimization ===        
+loss_function: "bce" # Support for "bce" (binary cross-entropy) and "dkl" (Kullback-Leibler divergence)
+entropy_weight: 1  # Weight for entropy term in the DKL loss function
+scheduler: "reduceonplateau"          # or "ReduceLROnPlateau", "Cosine"
+step_size: 10                # StepLR arg
+gamma: 0.5               # StepLR arg
+plateau_metric: "loss"            # only for ReduceLROnPlateau
 
 # from now on - CURRENTLY NOT USED
-
-# === Optimization ===        
-optimizer: "adam"
-loss_function: "cross_entropy"
 
 # === Model ===
 use_activation: False          # Apply nonlinearity after convolution
