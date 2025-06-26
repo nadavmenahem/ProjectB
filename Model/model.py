@@ -6,7 +6,7 @@ from utils.graph_utils import graph_spectral_decomposition
 
 
 class SpectralGCN(nn.Module):
-    def __init__(self, num_nodes, time_samples, in_features, out_features, G, H, num_classes):
+    def __init__(self, num_nodes, time_samples, in_features, out_features, G, H, num_classes, hidden_dim = 32):
         super(SpectralGCN, self).__init__()
 
         Λ, V  = graph_spectral_decomposition(G)
@@ -28,8 +28,11 @@ class SpectralGCN(nn.Module):
         self.activation = nn.ReLU()
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(self.G * self.N, num_classes),
-            # nn.Softmax(dim=1)
+            nn.Linear(out_features * num_nodes, hidden_dim),
+            nn.Dropout(p=0.3), # take from config ~nadav
+            nn.ReLU(),
+            nn.Linear(hidden_dim, num_classes),
+            nn.Dropout(p=0.3)
         )
 
 
@@ -51,7 +54,7 @@ class SpectralGCN(nn.Module):
 
         # 3) Flatten (G,N) → (G*N)
         B = out.shape[0]
-        out = out.view(B, self.G * self.N)  # (B, G*N)
+        out = out.reshape(B, self.G * self.N)  # (B, G*N)
 
         # 4) Classify
         return self.classifier(out)     # now matches (G*N → num_classes)

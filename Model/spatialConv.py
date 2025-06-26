@@ -8,33 +8,35 @@ class SpatialConvolution(nn.Module):
     X shape : (B, T, K, N)
     Y shape : (B, G, N)
     """
-    def __init__(self, time_samples, in_feats, out_feats, A_tilde, H):
+    def __init__(self, T, K, G, A_tilde, H):
         super().__init__()
-        self.T, self.K, self.G, self.H = time_samples, in_feats, out_feats, H
-
-        # store Â⁰…Âᴴ  as (H+1, N, N) tensor
-        A_powers = [np.eye(A_tilde.shape[0], dtype=np.float32)]
-        for h in range(1, H + 1):
-            A_powers.append(A_powers[-1] @ A_tilde)
-        self.register_buffer("A_powers",
-                             torch.tensor(np.stack(A_powers)))  # (H+1,N,N)
-
-        # one scalar weight per (t, k, g, h)
-        self.weights = nn.Parameter(
-            torch.randn(time_samples, in_feats, out_feats, H + 1))
+        self.T, self.K, self.G, self.H = T, K, G, H
+        self.register_buffer("A_tilde", torch.tensor(A_tilde, dtype=torch.float32))
+        # learnable coeffs: (T, K, G, H+1)
+        self.coeffs = nn.Parameter(torch.randn(T, K, G, H+1))
 
     def forward(self, X):
+        # X: (B, T, K, N)
         B, T, K, N = X.shape
         Y = torch.zeros(B, self.G, N, device=X.device)
 
-        for t in range(T):
-            for k in range(K):
-                x_tk = X[:, t, k, :]                        # (B,N)
-                for g in range(self.G):
-                    y_tkg = 0
-                    for h in range(self.H + 1):
-                        Ah = self.A_powers[h]               # (N,N)
-                        w  = self.weights[t, k, g, h]       # scalar
-                        y_tkg += w * (x_tk @ Ah.T)          # (B,N)
-                    Y[:, g, :] += y_tkg
-        return Y
+        # we'll keep a running "power" of A_tilde times X
+        # start with A^0 X = X itself
+        X_h = X                                # shape (B, T, K, N)
+
+        for h in range(self.H + 1):
+            # coeffs for this hop h: shape (T, K, G)
+            w_h = self.coeffs[..., h]          # (T, K, G)
+
+            # accumulate into Y via einstein summation:
+            #   X_h: (B, T, K, N)
+            #   w_h: (    T, K, G)
+            # want: sum_{t,k} X_h[b,t,k,n] * w_h[t,k,g]
+            # result: (B, G, N)
+            Y = Y + torch.einsum("btkn,tkg->bgn", X_h, w_h)
+
+            # now step X_h ← A_tilde · X_h  for next power
+            # (just matrix-multiply the N-dim slice)
+            X_h = torch.einsum("ij,btkj->btki", self.A_tilde, X_h)
+
+        return Y  # (B, G, N)

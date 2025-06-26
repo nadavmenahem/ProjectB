@@ -8,14 +8,14 @@ def graph_spectral_decomposition(G):
     # L = nx.laplacian_matrix(G).toarray()
 
     # Get adjacency matrix
-    A = nx.adjacency_matrix(G).toarray()  # Convert sparse matrix to dense NumPy array
+    A_norm = get_normalized_adjacency(G)
 
     # Compute the degree matrix
-    degrees = np.array(A.sum(axis=1)).flatten()
+    degrees = np.array(A_norm.sum(axis=1)).flatten()
     D_inv_sqrt = sparse.diags(1.0 / np.sqrt(degrees))
 
     # 2. Compute eigenvalues and eigenvectors (Graph Fourier basis)
-    eigenvalues, eigenvectors = np.linalg.eigh(A)
+    eigenvalues, eigenvectors = np.linalg.eigh(A_norm)
 
     # Sort eigenvalues and eigenvectors
     idx = np.argsort(eigenvalues)

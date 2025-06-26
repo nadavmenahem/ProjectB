@@ -8,7 +8,7 @@ from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau, CosineAnnealingL
 
 
 
-def make_scheduler(optimizer, cfg):
+def get_scheduler(optimizer, cfg):
     name = cfg.scheduler.lower()
     if name == "steplr":
         return StepLR(optimizer, step_size=cfg.step_size, gamma=cfg.gamma)
@@ -41,7 +41,7 @@ def evaluate_model(model, loader, loss_function, k=3):
 
             if loss_function.lower() == "bce":
                 probs = torch.sigmoid(logits)              # (B, num_lines)
-            else:  # DKL
+            else:  # DKL or Jeffreys KL
                 probs = nn.functional.softmax(logits, dim=1)
 
             topk    = torch.topk(probs, k, dim=1).indices
@@ -81,23 +81,67 @@ def get_pos_weights(train_loader):
     return pos_weight
 
 
+def get_optimizer(model, config):
+    """
+    Create an optimizer for the model parameters.
+    """
+    if config.optimizer.lower() == "adam":
+        return torch.optim.Adam(model.parameters(), lr=config.learning_rate)
+    elif config.optimizer.lower() == "sgd":
+        return torch.optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9)
+    else:
+        raise ValueError(f"Unknown optimizer: {config.optimizer}. Use 'adam' or 'sgd'.")
+
+
+def get_loss(logits, targets, criterion, loss_name, y_batch, config):
+    ε = config.epsilon  # small smoothing factor
+    # Compute loss
+    if loss_name == "bce":
+        # for each element: 1 → 1-ε,  0 → ε
+        targets = targets * (1 - ε) + (1 - targets) * ε
+        loss = criterion(logits, targets)
+
+    elif loss_name == "dkl":
+        # add smoothing  ~nadav
+
+        # turnning logits to log-probabilities
+        log_p = F.log_softmax(logits, dim=1)
+
+        # building a proper target distribution
+        q     = build_target_distribution(y_batch, ε)
+        loss  = criterion(log_p, q)
+
+    else: # Jeffreys KL
+        loss = jeffreys_kl_loss(logits, targets, entropy_weight=config.entropy_weight, ε=ε)
+
+    return loss
+
+
+def get_criterion(loss_name, train_loader, model):
+    """
+    Get the loss function based on the configuration.
+    """
+    if loss_name.lower() == "bce":
+        pos_weights = get_pos_weights(train_loader).to(model.device)
+        return nn.BCEWithLogitsLoss(pos_weight=pos_weights)
+    elif loss_name.lower() == "dkl":
+        return nn.KLDivLoss(reduction='batchmean')
+    elif loss_name.lower() == "jeffreys":
+        return jeffreys_kl_loss
+    else:
+        raise ValueError(f"Unknown loss function: {loss_name}. Use 'bce', 'dkl' or 'Jeffreys'.")
+
+
 def train_model(model, train_loader, config, params_path, test_loader=None):
     """
     Train the model using the provided data loader, optimizer, and loss function.
     """
     k = config.topk
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
-    scheduler  = make_scheduler(optimizer, config) 
+    optimizer = get_optimizer(model, config)
+    scheduler  = get_scheduler(optimizer, config) 
     loss_name = config.loss_function.lower()
     print(f"Using loss function: {loss_name.upper()}")
-    if loss_name == "bce":
-        pos_w = get_pos_weights(train_loader).to(model.device)
-        criterion  = nn.BCEWithLogitsLoss(pos_weight=pos_w)  
-    elif loss_name == "dkl":
-        pass
-        # criterion  = nn.KLDivLoss(reduction='batchmean')
-    else:
-        raise ValueError(f"Unknown loss function: {loss_name}. Use 'bce' and 'dkl'.")
+    criterion = get_criterion(loss_name, train_loader, model)
 
     print("Training model...")
     for epoch in range(config.num_epochs):
@@ -114,14 +158,7 @@ def train_model(model, train_loader, config, params_path, test_loader=None):
             # Forward pass
             logits = model(x_batch)  # shape: (B, num_lines)
 
-            ε = config.epsilon  # small smoothing factor
-            # Compute loss
-            if loss_name == "bce":
-                # for each element: 1 → 1-ε,  0 → ε
-                targets = targets * (1 - ε) + (1 - targets) * ε
-                loss = criterion(logits, targets)  
-            else:  # DKL
-                loss = jeffreys_kl_loss(logits, targets, entropy_weight=config.entropy_weight, ε=ε)
+            loss = get_loss(logits, targets, criterion, loss_name, y_batch, config)
 
             # Backward pass
             optimizer.zero_grad()
@@ -133,17 +170,16 @@ def train_model(model, train_loader, config, params_path, test_loader=None):
         end_time = time.time()
         epoch_duration = end_time - start_time
 
-        print(f"Epoch {epoch+1}/{config.num_epochs} - Loss: {epoch_loss:.4f} - Time: {epoch_duration:.2f}s")
+        print(f"\nEpoch {epoch+1}/{config.num_epochs} - Loss: {epoch_loss:.4f} - Time: {epoch_duration:.2f}s")
         _, _, _, correct, total = evaluate_model(model, train_loader, config.loss_function, k)
         print(f"Train Top-{k} Accuracy: {(correct/total)*100:.2f}% ({correct}/{total})")
 
         # Step the learning rate scheduler
         if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            metric = epoch_loss if config.plateau_metric == "loss" else correct / total
+            metric = correct / total
             scheduler.step(metric)                       # needs a metric
         else:                                            # StepLR, Cosine, …
             scheduler.step()                             # plain step
-        # print(f"LR now {optimizer.param_groups[0]['lr']:.2e}")
 
         # Evaluate on test set if provided
         if test_loader is not None:

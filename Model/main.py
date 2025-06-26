@@ -7,10 +7,11 @@ import json
 import torch
 import torch.nn as nn
 import argparse
+import random
 
 from model import SpectralGCN
 from model_dft import DFTSpectralGCN
-from utils.plot_utils import plot_graph, plot_data, plot_test_case_probs, plot_all_buses
+from utils.plot_utils import plot_test_case_probs
 from utils.data_utils import get_data_loaders, load_dataset, get_config, get_graph, get_meta_data
 from utils.model_utils import train_model, evaluate_model, save_model, load_model, print_parameter_count
 from conformal import ConformalPredictor
@@ -58,7 +59,8 @@ def main():
             out_features=config.output_features, # G
             G=G, # graph
             H=config.poly_order, # H
-            num_classes=G.number_of_edges() # one output per power line
+            num_classes=G.number_of_edges(), # one output per power line
+            hidden_dim=config.model.hidden_dim
         )
 
     elif config.model.type == 'dft':
@@ -69,7 +71,8 @@ def main():
             out_features=config.output_features, # G
             G=G, # graph
             H=config.poly_order, # H
-            num_classes=G.number_of_edges() # one output per power line
+            num_classes=G.number_of_edges(), # one output per power line
+            hidden_dim=config.model.hidden_dim
         )
 
     else:
@@ -130,12 +133,14 @@ def main():
         print(f"Test Top-{config.topk} Accuracy: {(correct/total)*100:.2f}% ({correct}/{total})")
 
     if RESULT_PLOTTING:
-        for i, (probs, true_labels, topk) in enumerate(zip(y_probs, y_true, topk_idx)):
+        indices = list(range(len(y_probs)))
+        chosen = sorted(random.sample(indices, k=min(5, len(indices))))
+        for i in chosen:
             plot_test_case_probs(
-                probs=probs,                      # model’s predicted probabilities
-                true_labels=true_labels,          # ground-truth binary vector
-                case_idx=i,                       # index of this test case
-                topk_indices=topk.tolist(),       # your top-k predictions
+                probs=y_probs[i],
+                true_labels=y_true[i],
+                case_idx=i,
+                topk_indices=topk_idx[i].tolist(),
                 conformal_set=np.where(all_sets[i])[0].tolist()
             )
 

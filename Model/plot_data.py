@@ -2,10 +2,10 @@ import os
 import numpy as np
 import argparse
 
-from utils.data_utils import get_config, load_dataset, get_meta_data
-from utils.plot_utils import plot_all_buses
+from utils.data_utils import get_config, load_dataset, get_meta_data, get_graph
+from utils.plot_utils import plot_all_buses, plot_graph
 
-CASE_NUMBER = 5  # The case number to plot
+CASE_NUMBER = 0  # The case number to plot
 
 
 if __name__ == "__main__":
@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     metadata = get_meta_data(dataset_path)
     X, Y = load_dataset(dataset_path)
-    line_index = np.argmax(Y[CASE_NUMBER])  # Find the index of the bus with a fault
+    line_index = np.argmax(Y[CASE_NUMBER])  # Find the index of the outaged line
     print(f"line outage at line: {line_index}")
 
     sampling_rate = metadata["sampling_rate"]
@@ -30,5 +30,9 @@ if __name__ == "__main__":
 
     if case_data.ndim == 3:
         case_data = case_data.squeeze(1)  # remove feature dimension if needed
+
+    # Plot the graph of the network
+    G = get_graph(dataset_path)
+    plot_graph(G, signal=case_data[:, line_index], numbering=True, faulty_lines=Y[CASE_NUMBER])
 
     plot_all_buses(X[CASE_NUMBER], total_time=total_time, sampling_rate=sampling_rate, outage_time=outage_time)
