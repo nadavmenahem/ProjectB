@@ -10,8 +10,6 @@ class SpectralConvolution(nn.Module):
 
         # precompute Λ^0…Λ^H → shape (H+1, N)
         h_idx = torch.arange(H+1, device=Lambda.device).unsqueeze(1)  # (H+1,1)
-        self.register_buffer('Lambda_powers',
-                             (Lambda.unsqueeze(0) ** h_idx))          # (H+1, N)
 
         # learnable coefficients w[t,k,g,h]
         self.weights = nn.Parameter(torch.randn(self.T,
@@ -27,15 +25,18 @@ class SpectralConvolution(nn.Module):
         B, T, K, N = X_hat.shape
         assert T == self.T and K == self.K and N == self.Lambda.size(0)
 
-        # 1) lift X_hat into (H+1, B, T, K, N) by multiplying each hop:
-        #    X_lp[h, b,t,k,n] = X_hat[b,t,k,n] * (Λ[n]**h)
-        X_lp = X_hat.unsqueeze(0) * self.Lambda_powers.view(self.H+1, 1, 1, 1, N)
+        # 1) Λ-powers  ------ shape:  (N, H+1)
+        lambda_powers = self.Lambda.unsqueeze(1).pow(
+            torch.arange(self.H + 1, device=X_hat.device))
 
-        # 2) reorder weights to align hops first: (H+1, T, K, G)
-        w = self.weights.permute(3, 0, 1, 2)
-
-        # 3) einsum sums over h, t, k:
-        #    Y[b,g,n] = Σ_{h,t,k}  X_lp[h,b,t,k,n] * w[h,t,k,g]
-        Y = torch.einsum('hbtkn,htkg->bgn', X_lp, w)
+        # 2) single contraction – multiply & add in one shot
+        #
+        #   btkn  = X_hat                       (B, T, K, N)
+        #   nh    = Λ_powers                    (N, H+1)
+        #   tkgh  = weights                     (T, K, G, H+1)
+        #
+        #   result indices kept:  b  g  n
+        #
+        Y = torch.einsum('btkn,nh,tkgh->bgn', X_hat, lambda_powers, self.weights)
 
         return Y

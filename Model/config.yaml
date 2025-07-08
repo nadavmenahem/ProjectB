@@ -2,19 +2,19 @@
 
 # === Dataset Settings ===
 dataset:
-  # path: "datasets/outage_dataset"  # Path to adjacency matrix (.npy file)
-  # path: "datasets/outage_dataset_noisy"
+#  path: "datasets/outage_dataset_noisy"
 #  path: "datasets/outage_dataset_noisy2"
   # path: "datasets/outage_dataset_white_noise"
   # path: "datasets/outage_dataset_noisy_ou"
   path: "datasets/outage_dataset_with_loads"
-  # path: "datasets/outage_dataset_with_loads_N2" 
+#  path: "datasets/outage_dataset_with_loads_N2"
   # path: "datasets/N-2_random_outage_time"  # too much...
-  # path: "datasets/N-2_random_outage_time2"
+#  path: "datasets/N-2_random_outage_time2"
   network_name: "ieee14"  # Change this to the desired network name
   graph_path: "graph.npy"
   metadata_path: "meta.json"
   test_size: 0.05         # Fraction of data to be used for testing
+  val_size:  0.1
   cal_size : 0.1         # Fraction of data to be used for calibration
 
 # === Model Settings ===
@@ -30,8 +30,8 @@ poly_order: 1                 # H: Degree of the frequency-domain polynomial fil
 
 # === Training ===
 batch_size: 64
-num_epochs: 25
-learning_rate: 0.001
+num_epochs: 500
+learning_rate: 0.0005
 lr_decay: 0.9             # Exponential learning rate decay - CURRENTLY NOT USED
 epsilon: 0              # smoothing the labels (for both losses)
 
@@ -40,12 +40,12 @@ alpha: 0.1             # Significance level for conformal prediction
 topk: 3                # Number of top predictions to consider
   
 # === Optimization ===
-optimizer: "sgd"             # Optimizer type (e.g., "adam", "sgd")
+optimizer: "adam"             # Optimizer type (e.g., "adam", "sgd")
 loss_function: "dkl"          # Support for "bce" (binary cross-entropy), "dkl" (Kullback-Leibler divergence) and "Jeffrey" (Jeffrey divergence)
 entropy_weight: 0             # Weight for entropy term in the DKL loss function
 scheduler: "steplr"  # Supports "ReduceLROnPlateau", "Cosine", "steplr"
-step_size: 1                  # StepLR arg
-gamma: 0.95                   # StepLR arg
+step_size: 2                  # StepLR arg
+gamma: 0.6                   # StepLR arg
 plateau_metric: "loss"        # only for ReduceLROnPlateau
 
 

@@ -9,6 +9,7 @@ from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau, CosineAnnealingL
 
 
 def get_scheduler(optimizer, cfg):
+
     name = cfg.scheduler.lower()
     if name == "steplr":
         return StepLR(optimizer, step_size=cfg.step_size, gamma=cfg.gamma)

@@ -41,7 +41,14 @@ def main():
     # metadata = get_meta_data(dataset_path)
     G = get_graph(dataset_path)
 
-    train_loader, cal_loader, test_loader, X_shape = get_data_loaders(dataset_path, config.batch_size, config.dataset.test_size, config.dataset.cal_size)
+    # need to use val_loader! ~nadav
+    train_loader, cal_loader, test_loader, _, X_shape = get_data_loaders(
+        dataset_path=dataset_path,
+        batch_size=config.batch_size,
+        test_size=config.dataset.test_size,
+        val_size=config.dataset.val_size,
+        cal_size=config.dataset.cal_size)
+
     # X_shape == (B, T, K, N)
     _, time_samples, num_input_features, _ = X_shape
 

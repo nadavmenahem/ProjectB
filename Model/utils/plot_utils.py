@@ -56,6 +56,10 @@ def plot_all_buses(case_data, total_time=200, sampling_rate=8, outage_time=100):
 
 
 def plot_graph(G, signal=None, numbering=False, faulty_lines=None, bar_alpha=0.6, label_shift=0):
+    """
+    expects list of edge indices for faulty_lines
+    """
+
     # 1) compute layout & edges
     pos   = nx.spring_layout(G, seed=42)
     edges = list(G.edges())
