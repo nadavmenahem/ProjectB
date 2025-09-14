@@ -2,10 +2,12 @@
 
 
 # to run main:
-python Model/main.py --config Model/config.yaml
+python Model/main.py --config Model/configs/config.yaml
+# to cancel asserts
+python -O Model/main.py --config Model/configs/config.yaml
 
 # to run plot_data:
-python Model/plot_data.py --config Model/config.yaml
+python Model/plot_data.py --config Model/configs/config.yaml
 
 # to run generate_noisy_data:
 python Simulations/PandaPower/generate_noisy_data.py --config Simulations/PandaPower/data_config.yaml
@@ -19,3 +21,8 @@ python Simulations/PandaPower/add_noise_to_data2.py datasets/outage_dataset/ieee
 optuna-dashboard sqlite:///optuna.db --port 8080
 # at url:
 # http://localhost:8080
+
+# restart a new experiment
+del optuna.db
+python Model/tune_model.py --config Model/configs/config.yaml
+optuna-dashboard sqlite:///optuna.db --port 8080
