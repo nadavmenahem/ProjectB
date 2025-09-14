@@ -2,6 +2,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
+from torch.fx import symbolic_trace
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 
 
 #==================FUNCTIONS==================
@@ -18,7 +21,7 @@ def plot_data(angles, bus_index, total_time=200, sampling_rate=8, outage_time=10
     plt.plot(time_vector, angles, label=f"Bus {bus_index}", color='b')
     if outage_time is not None:
         plt.axvline(x=outage_time, color='r', linestyle='--', label=f"Outage at {outage_time}s")
-    plt.xlabel("Time (s)")
+    plt.xlabel("Step")
     plt.ylabel("Phasor Angle (degrees)")
     plt.title(f"Phasor Angle of Bus {bus_index} Over Time")
     plt.legend()
@@ -191,3 +194,109 @@ def plot_test_case_probs(probs, true_labels, case_idx, topk_indices=None, confor
 
     plt.tight_layout()
     plt.show()
+
+
+def plot_test_case_clean(
+        probs,
+        true_labels,
+        case_idx,
+        conformal_set=None,  # iterable of indices in CP set
+        top_n=7,
+        true_threshold=0.1,
+):
+    """
+    Clean single-panel plot:
+      - Horizontal bars for top-N probabilities (sorted desc).
+      - Bars that belong to the conformal set are highlighted.
+      - True label(s) within top-N are starred.
+    """
+    p = np.asarray(probs, float)
+    y_true = np.asarray(true_labels, float)
+    L = p.size
+
+    S = set(conformal_set) if conformal_set is not None else set()
+    true_idx = np.flatnonzero(y_true > true_threshold).tolist()
+
+    # sort and keep only top-N
+    order = np.argsort(p)[::-1]
+    show = order[:min(top_n, L)]
+    ranks = np.arange(1, show.size + 1)
+    y = np.arange(show.size)[::-1]  # highest rank at top
+
+    # colors: in-CP purple, otherwise blue
+    in_cp = np.array([idx in S for idx in show])
+    colors = np.where(in_cp, "#7b3294", "#4c78a8")
+
+    fig, ax = plt.subplots(figsize=(11, 4.8))
+    bars = ax.barh(y, p[show], color=colors, alpha=0.9)
+
+    # annotate probabilities
+    for i, val in enumerate(p[show]):
+        ax.text(val + 0.005, y[i], f"{val:.3f}", va="center", fontsize=9)
+
+    # mark true labels (only if within top-N)
+    for t in true_idx:
+        if t in show:
+            i = np.where(show == t)[0][0]
+            ax.scatter(p[t], y[i], marker='*', s=160, facecolor='gold',
+                       edgecolor='black', zorder=3)
+
+    # y ticks: show rank + original index
+    ax.set_yticks(y)
+    ax.set_yticklabels([f"#{r}  (idx {idx})" for r, idx in zip(ranks, show)], fontsize=10)
+
+    # axes cosmetics
+    ax.set_xlim(0, min(1.0, p[show].max() * 1.15 + 0.02))
+    ax.set_xlabel("Predicted probability", fontsize=11)
+
+    # coverage + set size summary
+    covered = set(true_idx).issubset(S) if S else False
+    ax.set_title(
+        f"Case {case_idx} — CP cover: {'YES' if covered else 'NO'} (|S|={len(S)})",
+        fontsize=13
+    )
+
+    # legend (only what matters)
+    handles = [
+        Patch(facecolor="#7b3294", label="In conformal set"),
+        Patch(facecolor="#4c78a8", label="Not in set"),
+        Line2D([0], [0], marker='*', ms=12, mfc='gold', mec='black',
+               linestyle='None', label="True label"),
+    ]
+    ax.legend(handles=handles, loc="lower right", frameon=False)
+
+    # footer note if CP set extends beyond top-N
+    if S:
+        shown_in_set = in_cp.sum()
+        if shown_in_set < len(S):
+            ax.text(
+                0.99, 0.02,
+                f"+{len(S) - shown_in_set} CP members not shown (outside top-{top_n})",
+                transform=ax.transAxes, ha="right", va="bottom", fontsize=9, color="dimgray"
+            )
+
+    plt.tight_layout()
+    plt.show()
+
+
+def visualize_model(model, example_input):
+    model.eval()
+    gm = symbolic_trace(model)                 # FX GraphModule
+    # Run once so shapes propagate if your model uses dynamic branches
+    _ = model(example_input)
+
+    G = nx.DiGraph()
+    for node in gm.graph.nodes:
+        G.add_node(node.name, label=f"{node.op}:{node.target}")
+
+    # Edges: from input nodes to this node
+    for node in gm.graph.nodes:
+        for src in node.all_input_nodes:
+            G.add_edge(src.name, node.name)
+
+    plt.figure(figsize=(12, 8))
+    pos = nx.spring_layout(G, seed=0)          # layout free; can try kamada_kawai_layout
+    nx.draw(G, pos, with_labels=False, node_size=800, alpha=0.9)
+    labels = nx.get_node_attributes(G, "label")
+    nx.draw_networkx_labels(G, pos, labels, font_size=8)
+    plt.axis("off"); plt.tight_layout(); plt.show()

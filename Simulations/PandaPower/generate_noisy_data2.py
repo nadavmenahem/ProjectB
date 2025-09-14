@@ -6,7 +6,6 @@ this script is identical to generate_noisy_data.py, but with the addition of ran
 #===================IMPORTS==================
 import pandapower as pp
 import pandapower.networks as pn
-# import pandapower.timeseries as ts
 import numpy as np
 import pandas as pd
 import os

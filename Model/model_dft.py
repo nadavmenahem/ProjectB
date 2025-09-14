@@ -2,12 +2,9 @@ import torch
 import torch.nn as nn
 
 from spatialConv import SpatialConvolution
-import networkx as nx
-import numpy as np
 from utils.graph_utils import get_normalized_adjacency
 
-# change name ~nadav (it's not spectral but spatial)
-class DFTSpectralGCN(nn.Module):
+class SpatialGCN(nn.Module):
     def __init__(self,
                  num_nodes,
                  time_samples,
@@ -16,8 +13,9 @@ class DFTSpectralGCN(nn.Module):
                  G,                  # networkx graph
                  H,
                  num_classes,
-                 hidden_dim = 64):
-        super(DFTSpectralGCN, self).__init__()
+                 hidden_dim = 64,
+                 dropout = 0.3):
+        super(SpatialGCN, self).__init__()
 
         self.T = time_samples
         self.N = num_nodes
@@ -36,10 +34,10 @@ class DFTSpectralGCN(nn.Module):
         self.classifier = nn.Sequential(
             nn.Flatten(),
             nn.Linear(out_features * num_nodes, hidden_dim),
-            nn.Dropout(p=0.3), # take from config ~nadav
+            nn.Dropout(p=dropout),
             nn.ReLU(),
             nn.Linear(hidden_dim, num_classes),
-            nn.Dropout(p=0.3)
+            nn.Dropout(p=dropout)
         )
     
     

@@ -1,0 +1,41 @@
+# === Dataset Settings ===
+dataset:
+  path: "datasets/TT40_OT20_NS003_M40_N-2"
+  network_name: "ieee39"  # Change this to the desired network name
+  graph_path: "graph.npy"
+  metadata_path: "meta.json"
+  test_size: 0.1    # Fraction of data to be used for testing
+  val_size:  0.1    # For validation
+  cal_size : 0.1    # For calibration
+
+# === Model Settings ===
+model:
+  load_pretrained: True # Load pretrained model weights
+  type: "gft"           # Specify the model type ("dft", "gft")
+  params_folder: "Model/params"
+  hidden_dim: 64
+
+# === Spectral Convolution ===
+output_features: 20   # G: Number of spectral filters (output features)
+poly_order: 2         # H: Degree of the frequency-domain polynomial filter
+
+# === Training ===
+batch_size: 64
+num_epochs: 10
+learning_rate: 0.0005
+epsilon: 0  # smoothing the labels - CURRENTLY NOT USED
+
+# === Regularization ===
+dropout: 0.0
+
+# === Conformal Prediction ===
+alpha: 0.1  # Significance level for conformal prediction
+topk: 3     # Number of top predictions to consider
+  
+# === Optimization ===
+optimizer: "adam"     # Optimizer type (e.g., "adam", "sgd")
+loss_function: "dkl"  # Support for "bce" (binary cross-entropy), "dkl" (Kullback-Leibler divergence) and "Jeffreys" (Jeffrey divergence)
+entropy_weight: 0     # Weight for entropy term in the DKL loss function
+scheduler: "cosine"   # Supports "ReduceLROnPlateau", "Cosine", "steplr"
+step_size: 2          # StepLR arg
+gamma: 0.6            # StepLR arg

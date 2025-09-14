@@ -1,9 +1,9 @@
 # Configuration file for the generate_noisy_data.py script (and not for generate_data.py)
 
-TOTAL_TIME: 25  # seconds
-SAMPLING_RATE: 1  # Hz
-OUTAGE_TIME: None  # if None, generate_noisy_data2.py will generate random outage times
-DATA_ROOT: "datasets/N-2_random_outage_time2"  # Path to save the dataset
-NOISE_SCALE: 0.015  # Scale of noise to be added to loads
-MULTIPLICITY: 100  # Number of cases to generate for each line outage
+TOTAL_TIME:     40  # seconds
+SAMPLING_RATE:  1  # Hz
+OUTAGE_TIME:    20  # if None, generate_noisy_data2.py will generate random outage times
+DATA_ROOT:      "datasets/TT40_OT20_NS003_M40_N-2"  # Path to save the dataset
+NOISE_SCALE:    0.03  # Scale of noise to be added to loads
+MULTIPLICITY:   40  # Number of cases to generate for each line outage
 N2_CONTINGENCY: True     # N-1 or N-2 contingency

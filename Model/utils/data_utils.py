@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import torch
-from torch.utils.data import TensorDataset, DataLoader, random_split
+from torch.utils.data import TensorDataset, DataLoader
 import networkx as nx
 import json
 from box import Box
@@ -9,17 +9,12 @@ import yaml
 from typing import Optional
 from pathlib import Path
 from typing import Tuple
+import random
 
 
 CONFIG_FILE = "./Model/config.yaml"
 GRAPH_FILE = "graph.npy"
 META_FILE = "meta.json"
-
-
-"""
-should I turn this into a class?
-function that return the shape of the data instead of in the data loader?
-"""
 
 
 def get_graph(dataset_path):
@@ -67,7 +62,7 @@ def load_dataset(dataset_path):
     """
     print("Loading dataset...")
 
-    case_dir = os.path.join(dataset_path, "cases") # change ~nadav
+    case_dir = os.path.join(dataset_path, "cases")
     X, Y = [], []
 
     for filename in sorted(os.listdir(case_dir)):
@@ -84,66 +79,7 @@ def load_dataset(dataset_path):
     return X, Y
 
 
-# def get_data_loaders(dataset_path, batch_size, test_size=0.2, cal_size=0.2):
-#     """
-#     Load the dataset and create data loaders for training and testing.
-#     """
-#     X, Y = load_dataset(dataset_path)
-#
-#     # Convert to PyTorch tensors
-#     X_tensor = torch.tensor(X, dtype=torch.float32)
-#     Y_tensor = torch.tensor(Y, dtype=torch.float32)
-#
-#     shape = X_tensor.shape
-#
-#     if len(shape) == 3:
-#         # X shape: (B, T, N) → single feature, so add K=1
-#         X_tensor = X_tensor.unsqueeze(2)  # (B, T, 1, N)
-#
-#     elif len(shape) != 4:
-#         raise ValueError(f"Unsupported X shape: {shape}")
-#
-#     # Normalize Y tensor
-#     Y_sum = Y_tensor.sum(dim=1, keepdim=True)
-#     Y_sum[Y_sum == 0] = 1  # avoid division by zero
-#     Y_tensor = Y_tensor / Y_sum
-#
-#     # print("\n📦 After normalization:") # ~nadav
-#     # for i in range(len(Y_tensor)):
-#     #     print(f"Sample {i}: sum = {Y_tensor[i].sum().item()}")
-#
-#
-#     # Create a dataset and split into train/test sets
-#     dataset = TensorDataset(X_tensor, Y_tensor)
-#
-#     num_samples = len(dataset)
-#     torch.manual_seed(42)
-#     indices = torch.randperm(num_samples)
-#
-#     # Split the indices into train and test sets
-#     test_size = int(num_samples * test_size)
-#     cal_size = int(num_samples * cal_size)
-#     train_size = num_samples - test_size - cal_size
-#
-#     train_indices = indices[:train_size]
-#     cal_indices = indices[train_size:train_size + cal_size]
-#     test_indices = indices[train_size + cal_size:]
-#
-#     train_dataset = torch.utils.data.Subset(dataset, train_indices)
-#     cal_dataset = torch.utils.data.Subset(dataset, cal_indices)
-#     test_dataset = torch.utils.data.Subset(dataset, test_indices)
-#
-#     # print("\n📦 Test set ground-truth (Y):") # ~nadav
-#     # for i in range(len(test_dataset)):
-#     #     y = test_dataset[i][1].numpy()
-#     #     print(f"Test sample {i}: sum = {np.sum(y):.2f}, y = {np.round(y, 2)}")
-#
-#     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True) # shuffles every epoch
-#     cal_loader = DataLoader(cal_dataset, batch_size=batch_size, shuffle=False)
-#     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-#
-#     return train_loader, cal_loader, test_loader, X_tensor.shape
-
+# regular data split
 def get_data_loaders(
         dataset_path,
         batch_size,
@@ -221,3 +157,130 @@ def get_data_loaders(
     test_loader  = DataLoader(split(test_idx),  batch_size=batch_size, shuffle=False)
 
     return train_loader, val_loader, cal_loader, test_loader, X_tensor.shape
+
+
+
+
+# def get_data_loaders(
+#         dataset_path,
+#         batch_size,
+#         *,
+#         test_size = 0.2,
+#         val_size  = 0.1,
+#         cal_size  = 0.2,
+#         seed      = 42,
+#         y_pos_threshold: float = 0.0,
+# ) -> Tuple[DataLoader, DataLoader, DataLoader, DataLoader, tuple]:
+#     """
+#     Split data within each CASE so every outage case appears in train, val, cal, test.
+#     """
+#
+#     # --------------------------- load ----------------------------
+#     X, Y = load_dataset(dataset_path)
+#
+#     X_tensor = torch.as_tensor(X, dtype=torch.float32)
+#     Y_tensor_raw = torch.as_tensor(Y, dtype=torch.float32)
+#
+#     if X_tensor.dim() == 3:                          # (B, T, N)
+#         X_tensor = X_tensor.unsqueeze(2)             # (B, T, 1, N)
+#     elif X_tensor.dim() != 4:
+#         raise ValueError(f"Unsupported X shape: {X_tensor.shape}")
+#
+#     # --- Case key BEFORE normalization ---
+#     Y_bin = (Y_tensor_raw > y_pos_threshold)
+#     case_keys = [tuple(torch.where(Y_bin[i])[0].tolist()) for i in range(Y_bin.shape[0])]
+#
+#     # Group indices by case
+#     groups: Dict[tuple, List[int]] = {}
+#     for i, k in enumerate(case_keys):
+#         groups.setdefault(k, []).append(i)
+#
+#     # Normalize labels row-wise to sum=1
+#     Y_sum = Y_tensor_raw.sum(dim=1, keepdim=True).clamp(min=1.0)
+#     Y_tensor = Y_tensor_raw / Y_sum
+#
+#     dataset = TensorDataset(X_tensor, Y_tensor)
+#
+#     if (test_size + val_size + cal_size) >= 1.0:
+#         raise ValueError("test_size + val_size + cal_size must be < 1.0")
+#
+#     g = torch.Generator().manual_seed(seed)
+#
+#     split_indices = {"train": [], "val": [], "cal": [], "test": []}
+#
+#     for k, idxs in groups.items():
+#         idxs = torch.as_tensor(idxs, dtype=torch.long)
+#         perm = idxs[torch.randperm(len(idxs), generator=g)]
+#
+#         n_total = len(perm)
+#         n_test = int(n_total * test_size)
+#         n_val  = int(n_total * val_size)
+#         n_cal  = int(n_total * cal_size)
+#         n_train = n_total - n_test - n_val - n_cal
+#
+#         split_indices["train"].extend(perm[:n_train].tolist())
+#         split_indices["val"].extend(perm[n_train:n_train+n_val].tolist())
+#         split_indices["cal"].extend(perm[n_train+n_val:n_train+n_val+n_cal].tolist())
+#         split_indices["test"].extend(perm[n_train+n_val+n_cal:].tolist())
+#
+#     def mk_loader(idxs, shuffle):
+#         subset = torch.utils.data.Subset(dataset, idxs)
+#         return DataLoader(subset, batch_size=batch_size, shuffle=shuffle)
+#
+#     train_loader = mk_loader(split_indices["train"], shuffle=True)
+#     val_loader   = mk_loader(split_indices["val"],   shuffle=False)
+#     cal_loader   = mk_loader(split_indices["cal"],   shuffle=False)
+#     test_loader  = mk_loader(split_indices["test"],  shuffle=False)
+#
+#     return train_loader, val_loader, cal_loader, test_loader, X_tensor.shape
+
+
+# for debugging
+def count_case(loader, case_tuple, y_pos_threshold=0.0):
+    """Count how many samples in loader belong to a given outage case."""
+    count = 0
+    for xb, yb in loader:
+        # binarize labels
+        y_bin = (yb > y_pos_threshold)
+        # build case key for each sample in the batch
+        keys = [tuple(torch.where(row)[0].tolist()) for row in y_bin]
+        # count matches
+        count += sum(1 for k in keys if tuple(k) == tuple(case_tuple))
+    return count
+
+
+def pick_case_cp_cover_but_not_topk(P_tst, Y_tst, cp_mask, k=3, y_thr=0.1, prefer_small_set=True):
+    """
+    Return an index i such that:
+      - CP covers all true labels in case i
+      - Top-k predictions do NOT cover all true labels in case i
+    If none exists, returns None.
+    """
+    candidates = []
+    N = len(P_tst)
+
+    for i in range(N):
+        p = np.asarray(P_tst[i], float)
+        y = np.asarray(Y_tst[i], float)
+        S = set(np.flatnonzero(cp_mask[i]))
+        true_idx = set(np.flatnonzero(y > y_thr))
+        if not true_idx:       # skip cases with no positives
+            continue
+
+        topk = set(np.argsort(p)[::-1][:k])
+
+        cp_covers   = true_idx.issubset(S)
+        topk_covers = true_idx.issubset(topk)
+
+        if cp_covers and not topk_covers:
+            candidates.append((i, len(S)))
+
+    if not candidates:
+        return None
+
+    if prefer_small_set:
+        # pick the example with the smallest |S|
+        candidates.sort(key=lambda t: t[1])
+        return candidates[0][0]
+    else:
+        return random.choice(candidates)[0]

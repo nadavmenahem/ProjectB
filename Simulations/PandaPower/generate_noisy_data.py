@@ -7,7 +7,6 @@ The noise is added to the loads in the simulate_power_flow function.
 #===================IMPORTS==================
 import pandapower as pp
 import pandapower.networks as pn
-# import pandapower.timeseries as ts
 import numpy as np
 import pandas as pd
 import os
@@ -138,14 +137,12 @@ def simulate_power_flow(net, outage_lines, total_time=200, sampling_rate=8, outa
                 set_branch_status(net, line, status=False)
                 print(f"Line {line} outaged at t={t/sampling_rate} s")
 
-        # this is the difference between the scripts ~nadav
         if len(net.load):
             noise_p = np.random.uniform(-noise_scale, noise_scale, size=len(net.load))
             noise_q = np.random.uniform(-noise_scale, noise_scale, size=len(net.load))
             net.load['p_mw']   *= (1 + noise_p)
             net.load['q_mvar'] *= (1 + noise_q)
 
-        # in order to handle more noise (otherwise will not converge) ~nadav
         try:
             pp.runpp(net, max_iteration=50)
         except Exception as e:
@@ -205,39 +202,6 @@ def generate_outage_cases(net, multiplicity=2, contingency=False):
     outage_cases = [[int(line) for line in case] for case in outage_cases]  # Convert to int
 
     return outage_cases
-
-
-# def generate_outage_cases(net, num_cases=20):
-#     """
-#     Generate the outage cases with either 1 or 2 lines failing or no outage at all.
-#     return a list of lists, where each inner list contains the indices of the lines that are outaged.
-#     """
-#     num_lines = len(net.line)
-
-#     # Reserve 1 case for no outage
-#     remaining_cases = num_cases - 1
-
-#     # 75% for 1-line outages, 25% for 2-line outages
-#     num_1line = int(np.floor(0.75 * remaining_cases))
-#     num_2line = remaining_cases - num_1line  # Ensures total adds to (num_cases - 1)
-
-#     outage_cases = []
-#     outage_cases.append([])  # No outage case
-
-#     # Generate 1-line outages
-#     for _ in range(num_1line):
-#         line = np.random.choice(num_lines)
-#         outage_cases.append([line])
-
-#     # Generate 2-line outages
-#     for _ in range(num_2line):
-#         pair = np.random.choice(num_lines, size=2, replace=False)
-#         outage_cases.append(list(pair))
-
-#     # cleaning the cases a bit... some are regular ints and some are np.int32
-#     outage_cases = [[int(line) for line in case] for case in outage_cases]  # Convert to int
-
-#     return outage_cases
 
 
 def save_metadata(net, path, config):

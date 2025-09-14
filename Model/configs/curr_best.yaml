@@ -1,0 +1,31 @@
+dataset:
+  path: datasets\TT40_OT20_NS003_M40_N-2
+  network_name: ieee39
+  graph_path: graph.npy
+  metadata_path: meta.json
+  test_size: 0.1
+  val_size: 0.1
+  cal_size: 0.1
+model:
+  load_pretrained: true
+  type: gft
+  params_folder: Model/params
+  hidden_dim: 1024
+output_features: 20
+poly_order: 1
+batch_size: 8
+num_epochs: 20
+learning_rate: 0.000593233010198374
+epsilon: 0
+dropout: 0.0120569389778793
+alpha: 0.1
+topk: 3
+optimizer: adam
+loss_function: dkl
+entropy_weight: 0
+scheduler: Cosine
+step_size: 2
+gamma: 0.6
+plateau_metric: loss
+weight_decay: 6.463412772602265e-06
+load_pretrained: false

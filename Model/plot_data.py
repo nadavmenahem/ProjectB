@@ -5,7 +5,7 @@ import argparse
 from utils.data_utils import get_config, load_dataset, get_meta_data, get_graph
 from utils.plot_utils import plot_all_buses, plot_graph
 
-CASE_NUMBER = 200  # case number to plot
+CASE_NUMBER = 3651  # case number to plot
 
 
 if __name__ == "__main__":
@@ -43,5 +43,6 @@ if __name__ == "__main__":
     # Plot the graph of the network
     G = get_graph(dataset_path)
     outaged_idx = np.where(np.asarray(probs) > 0)[0]
-    plot_graph(G, signal=case_data[T, :], numbering=True, faulty_lines=outaged_idx)
+    # plot_graph(G, signal=case_data[T, :], numbering=True, faulty_lines=outaged_idx)
+    plot_graph(G, numbering=True, faulty_lines=outaged_idx)
     plot_all_buses(X[CASE_NUMBER], total_time=total_time, sampling_rate=sampling_rate, outage_time=outage_time)

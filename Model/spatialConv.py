@@ -1,6 +1,5 @@
 # spatialConv.py  (new file -- drop alongside spectralConv.py)
 import torch, torch.nn as nn
-import numpy as np
 
 class SpatialConvolution(nn.Module):
     """

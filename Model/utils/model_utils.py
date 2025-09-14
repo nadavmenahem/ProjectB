@@ -13,9 +13,9 @@ def get_scheduler(optimizer, cfg):
     name = cfg.scheduler.lower()
     if name == "steplr":
         return StepLR(optimizer, step_size=cfg.step_size, gamma=cfg.gamma)
-    elif name == "reduceonplateau":
+    elif name == "reducelronplateau":
         return ReduceLROnPlateau(optimizer,
-                                 mode="min" if cfg.plateau_metric=="loss" else "max",
+                                 mode="min",
                                  factor=cfg.gamma,
                                  patience=cfg.step_size)
     elif name == "cosine":
@@ -31,14 +31,23 @@ def get_scheduler(optimizer, cfg):
 def evaluate_model(model, loader, loss_function, k=3):
     """
     Evaluate the model on the provided data loader.
+    Also returns the average forward pass time per batch.
     """
     model.eval()
     all_topk, all_targets, all_probs = [], [], []
+    total_time, num_batches = 0.0, 0
 
     with torch.no_grad():
         for x_batch, y_batch in loader:
             x_batch = x_batch.to(model.device)
+
+            # measure forward time
+            start = time.perf_counter()
             logits  = model(x_batch)
+            end = time.perf_counter()
+
+            total_time += (end - start)
+            num_batches += 1
 
             if loss_function.lower() == "bce":
                 probs = torch.sigmoid(logits)              # (B, num_lines)
@@ -64,8 +73,9 @@ def evaluate_model(model, loader, loss_function, k=3):
             correct += 1
 
     total = len(y_true)
-    return y_probs, y_true, topk_idx, correct, total
+    avg_forward_time = total_time / num_batches if num_batches > 0 else 0.0
 
+    return y_probs, y_true, topk_idx, correct, total, avg_forward_time
 
 
 def get_pos_weights(train_loader):
@@ -103,8 +113,6 @@ def get_loss(logits, targets, criterion, loss_name, y_batch, config):
         loss = criterion(logits, targets)
 
     elif loss_name == "dkl":
-        # add smoothing  ~nadav
-
         # turnning logits to log-probabilities
         log_p = F.log_softmax(logits, dim=1)
 
@@ -113,7 +121,8 @@ def get_loss(logits, targets, criterion, loss_name, y_batch, config):
         loss  = criterion(log_p, q)
 
     else: # Jeffreys KL
-        loss = jeffreys_kl_loss(logits, targets, entropy_weight=config.entropy_weight, ε=ε)
+        # loss = jeffreys_kl_loss(logits, targets, entropy_weight=config.entropy_weight, ε=ε)
+        loss = jeffreys_kl_loss(logits, y_batch, entropy_weight=config.entropy_weight, ε=ε)
 
     return loss
 
@@ -133,9 +142,10 @@ def get_criterion(loss_name, train_loader, model):
         raise ValueError(f"Unknown loss function: {loss_name}. Use 'bce', 'dkl' or 'Jeffreys'.")
 
 
-def train_model(model, train_loader, config, params_path, test_loader=None):
+def train_model(model, train_loader, config, params_path, val_loader=None, epoch_callback=None):
     """
     Train the model using the provided data loader, optimizer, and loss function.
+    supports optuna via epoch_callback
     """
     k = config.topk
     optimizer = get_optimizer(model, config)
@@ -153,6 +163,7 @@ def train_model(model, train_loader, config, params_path, test_loader=None):
 
         for x_batch, y_batch in train_loader:
             # convert probabilistic targets -> binary multi-hot
+            x_batch = x_batch.to(model.device)
             y_batch = y_batch.to(model.device)
             targets = (y_batch > 0).float()
 
@@ -172,7 +183,7 @@ def train_model(model, train_loader, config, params_path, test_loader=None):
         epoch_duration = end_time - start_time
 
         print(f"\nEpoch {epoch+1}/{config.num_epochs} - Loss: {epoch_loss:.4f} - Time: {epoch_duration:.2f}s")
-        _, _, _, correct, total = evaluate_model(model, train_loader, config.loss_function, k)
+        _, _, _, correct, total, _ = evaluate_model(model, train_loader, config.loss_function, k)
         print(f"Train Top-{k} Accuracy: {(correct/total)*100:.2f}% ({correct}/{total})")
 
         # Step the learning rate scheduler
@@ -182,10 +193,17 @@ def train_model(model, train_loader, config, params_path, test_loader=None):
         else:                                            # StepLR, Cosine, …
             scheduler.step()                             # plain step
 
+        # ---- notify Optuna (or any caller) ----
+        if epoch_callback is not None:
+            # allow the callback to signal early stop
+            should_stop = epoch_callback(epoch)
+            if should_stop:
+                break
+
         # Evaluate on test set if provided
-        if test_loader is not None:
-            _, _, _, test_correct, test_total = evaluate_model(model, test_loader, config.loss_function, k)
-            print(f"Test Top-{k} Accuracy: {(test_correct/test_total)*100:.2f}% ({test_correct}/{test_total})")
+        if val_loader is not None:
+            _, _, _, test_correct, test_total, _ = evaluate_model(model, val_loader, config.loss_function, k)
+            print(f"Val Top-{k} Accuracy: {(test_correct/test_total)*100:.2f}% ({test_correct}/{test_total})")
 
     torch.save({
         "model_state": model.state_dict(),
@@ -195,7 +213,7 @@ def train_model(model, train_loader, config, params_path, test_loader=None):
             "in_features": model.gcn.K
         }
     }, params_path)  # saving model parameters and configuration 
-    print(f"Model trained and saved to {params_path}")
+    print(f"\nModel trained and saved to {params_path}")
     
 
 def save_model(model, path):
