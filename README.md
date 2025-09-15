@@ -71,8 +71,24 @@ Enter number of buses (e.g., '39' for IEEE 39):
 - Cases → `<DATA_ROOT>/<network_name>/cases/case_XXXX.npz` (signals, labels)
 - Topology → `<DATA_ROOT>/<network_name>/graph.npy` (`[2, E]` edge index)
 - Dataset metadata → `<DATA_ROOT>/<network_name>/meta.json`
-- **Outage times** → `<DATA_ROOT>/<network_name>/outage_times.json` 
+- Outage times → `<DATA_ROOT>/<network_name>/outage_times.json` 
   (only created when outage times are randomized; records the actual outage step chosen for each case).
+
+### Handling invalid cases (NaNs)
+- Since the generator explores **all outage combinations**, some scenarios may completely disconnect a bus from the grid.  
+- In such cases the power-flow solver fails and the resulting case contains **NaN values**.  
+- To detect and clean these cases, use:
+  ```bash
+  python helpers/check_for_nan_data.py
+  ```
+- Script options:
+   - `DELETE_NAN = True` → automatically remove the corrupted cases from disk.
+   - `WRITE_TRIPPED_LINES = True` → log the offending cases (with their tripped lines) into a text file.
+   - `PATH` → dataset path to scan, e.g.:
+     ```python
+     PATH = "C:/Users/nadavmen/Work/ProjectB/Code/datasets/TT40_OT20_NS003_M40_N-2/ieee39"
+     ```
+> **Recommendation**: run this script once after dataset generation to ensure only valid cases remain for training and evaluation.
 
 ### Noise model (load-driven, physics-consistent)
 - Variability is injected **on the loads/injections**, **not** by corrupting the PMU signals post hoc.  
