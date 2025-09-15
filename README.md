@@ -2,22 +2,18 @@
 
 > End-to-end framework for **power‑grid line‑outage detection** on PMU data using **graph neural networks (GNNs)**, with **conformal prediction** for calibrated uncertainty and optional **Optuna** hyperparameter search.
 
-![img.png](img.png)
+<img width="2000" height="1125" alt="image" src="https://github.com/user-attachments/assets/5d674a98-400a-4727-be1f-05fb085a38cd" />
 
 ---
 
 ## Table of Contents
 - [Overview](#overview)
 - [Repo Layout](#repo-layout)
-- [Quick Start](#quick-start)
 - [Data](#data)
-- [Models & Architecture](#models--architecture)
-- [Training & Evaluation](#training--evaluation)
+- [Training the Model](#Training-the-Model)
 - [Conformal Prediction (APS/RAPS)](#conformal-prediction-apsraps)
-- [Hyperparameter Optimization (Optuna)](#hyperparameter-optimization-optuna)
 - [Results](#results)
 - [Complexity & Runtime](#complexity--runtime)
-- [Reproducibility](#reproducibility)
 - [References](#references)
 
 ---
@@ -96,7 +92,7 @@ Enter number of buses (e.g., '39' for IEEE 39):
 ### example
 example of measured data on bus 32 for a scenario of IEEE39 where lines 7 and 27 are tripped: 
 
-![img_4.png](img_4.png)
+<img width="1000" height="500" alt="image" src="https://github.com/user-attachments/assets/96840f3c-6e0b-4feb-9036-863a6b5ba4b2" />
 
 ---
 
@@ -195,7 +191,7 @@ python Model/main.py --config Model/configs/best.yaml
 > Set `RESULT_PLOTTING = True` in `main.py` to produce visualizations of random inference examples during training.
 
 Example of Optuna search: 
-![img_3.png](img_3.png)
+<img width="1059" height="334" alt="image" src="https://github.com/user-attachments/assets/0f632be5-8f48-47e2-b5dc-e22e4fdbbcdb" />
 
 ---
 
@@ -230,8 +226,8 @@ Each bar plot shows the model’s **predicted outage probabilities** (sorted by 
 - In **Case 46**, one of the true outaged lines ranks low in raw probability and falls outside the top-3 predictions. However, it is still captured in the **conformal prediction set**, demonstrating how CP provides coverage even when standard top-k accuracy fails.  
 - In **Case 1751**, all true outages are ranked near the top and included in both the top predictions and the conformal set, leading to small set size and high confidence.
 
-![img_1.png](img_1.png)
-![img_2.png](img_2.png)
+<img width="582" height="254" alt="image" src="https://github.com/user-attachments/assets/64d0e8e4-0949-4b1b-a2d5-ad30d49d72fd" />
+<img width="587" height="256" alt="image" src="https://github.com/user-attachments/assets/54584733-e807-44f8-bc04-7a16e35d6841" />
 
 ---
 
