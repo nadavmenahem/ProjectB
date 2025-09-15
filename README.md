@@ -249,8 +249,9 @@ Each bar plot shows the model’s **predicted outage probabilities** (sorted by 
 
 ## Complexity & Runtime
 
-- Forward pass of the GCN scales roughly as **O(N²)** for \(N\) buses.  
-- **Complexity & runtime:** a GCN forward pass scales as $O(N^2)$ and takes only ~0.7 ms per case (on CPU), compared to classical methods at $O(N^{3+k})$; memory footprint is modest (per-batch scaling with node count).
+- A forward pass of the GCN scales as **$O(N^2)$** in the number of buses and takes only ~0.7 ms per case on CPU.  
+  In contrast, classical contingency analysis methods scale as **$O(N^{3+k})$**.  
+  Memory usage is modest and grows linearly with batch size and node count.
 
 
 ---
