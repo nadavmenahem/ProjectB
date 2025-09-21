@@ -29,7 +29,7 @@ Beyond the architectures, the repo includes an end-to-end pipeline for **reprodu
 
 ## Repo Layout
 
-- `Model/` — GNN architectures (**Spectral GCN / GFT** and **Spatial GCN**), train/eval runners, **conformal prediction (APS/RAPS)** utils, configs, and plotting.
+- `Model/` — GNN architectures (**Spectral GCN / GFT** and **Spatial GCN**), train/eval runners, **conformal prediction** (APS/RAPS) utils, configs, and plotting.
 - `Simulations/` — IEEE test‑system simulators (Pandapower), outage scenario generation (N, N‑1, N‑k), optional noise injection, and export to `datasets/`.
 - `helpers/` — small helpful scripts (dataset checks, splits, ...).
 - `datasets/` — generated datasets organized by grid (e.g., `ieee39/`).
@@ -49,8 +49,6 @@ Beyond the architectures, the repo includes an end-to-end pipeline for **reprodu
 Edit `Simulations/PandaPower/data_config.yaml` to set timing, noise, output path, etc. For example:
    
 ```yaml
-# Configuration file for the generate_noisy_data.py script (and not for generate_data.py)
-
 TOTAL_TIME:     40  # seconds
 SAMPLING_RATE:  1   # Hz
 OUTAGE_TIME:    20  # if None, generate_noisy_data2.py will generate random outage times
@@ -62,7 +60,7 @@ N2_CONTINGENCY: True  # N-1 or N-2 contingency
 * Cases with the same outage scenario differ only in the random noise applied to the loads.
 2) **Run the generator**:
 ```bash
-python Simulations/PandaPower/generate_noisy_data.py --config Simulations/PandaPower/data_config.yaml
+python Simulations/PandaPower/generate_noisy_data2.py --config Simulations/PandaPower/data_config.yaml
 ```
 3) **Select the test system at the prompt**
 ```text
