@@ -20,9 +20,10 @@
 
 ## Overview
 
-Power‑grid reliability hinges on early **line‑outage detection**, a task made harder by the variability and scale of modern, renewables‑rich networks. This project takes a **data‑driven** route: we model the grid as a **graph** (buses = nodes, lines = edges), use high‑rate **PMU phasors**, and learn the spatio‑temporal signatures of outages. Building on **He & Cheng (ICPR 2021)**, we implement two GCN variants—**Spatial** (graph‑shift polynomials) and **Spectral/GFT** (graph‑frequency filtering)—and compare them on the **IEEE‑39** system. The models classify both **single** and **simultaneous** line outages, scaling naturally to **N–k** contingencies without explicit system parameters.
+Power-grid reliability hinges on early **line-outage detection**, a task made harder by the variability and scale of modern, renewables-rich networks. This project takes a **data-driven** route: we model the grid as a **graph** (buses = nodes, lines = edges) and use **per-bus voltage phase angles** (from steady-state power-flow solutions) as features to learn the signatures of outages. Building on **He & Cheng (ICPR 2021)**, we implement two GCN variants—**Spatial** (graph-shift polynomials) and **Spectral/GFT** (graph-frequency filtering)—and compare them on the IEEE-39 system. The models are able to classify both single-line and multi-line outages, covering the general **N–k contingency** setting without requiring explicit system parameters.
 
-Beyond the architectures, the repo includes an end‑to‑end pipeline for **reproducible simulation & data generation**, training/evaluation, and **conformal prediction (APS/RAPS)** to produce **calibrated prediction sets** with reported **coverage** and **average set size**.
+Beyond the architectures, the repo includes an end-to-end pipeline for **reproducible simulation & data generation**, training/evaluation, and **conformal prediction** (APS/RAPS) to produce calibrated prediction sets with reported coverage and average set size.
+
 
 ---
 
