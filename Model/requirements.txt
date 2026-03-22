@@ -1,5 +1,5 @@
 PyYAML
-box
+python-box
 matplotlib
 networkx
 numpy
