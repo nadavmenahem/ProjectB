@@ -1,7 +1,7 @@
 # === Dataset Settings ===
 dataset:
   path: "datasets/TT40_OT20_NS003_M40_N-2"
-  network_name: "ieee39"  # Change this to the desired network name
+  network_name: "ieee14"  # Change this to the desired network name
   graph_path: "graph.npy"
   metadata_path: "meta.json"
   test_size: 0.1    # Fraction of data to be used for testing
@@ -10,7 +10,7 @@ dataset:
 
 # === Model Settings ===
 model:
-  load_pretrained: True # Load pretrained model weights
+  load_pretrained: False  # Load pretrained model weights
   type: "gft"           # Specify the model type ("dft", "gft")
   params_folder: "Model/params"
   hidden_dim: 64

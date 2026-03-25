@@ -100,6 +100,7 @@ def main():
     if config.model.load_pretrained:
         load_model(model=model, params_path=params_path)
     else:
+        os.makedirs(os.path.dirname(params_path), exist_ok=True)
         train_model(model, train_loader, config, params_path, val_loader=val_loader)
 
 

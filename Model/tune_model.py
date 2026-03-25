@@ -9,49 +9,21 @@ import torch
 
 from utils.data_utils import get_data_loaders, get_config, get_graph
 from utils.model_utils import train_model, evaluate_model
-from Model.model import SpectralGCN
-from Model.model_dft import SpatialGCN  # if you want to tune that too
+from model import SpectralGCN
+from model_dft import SpatialGCN  # if you want to tune that too
 
-# --------------------------------------------------------------------------------------
-# CLI
-# --------------------------------------------------------------------------------------
-parser = argparse.ArgumentParser(description="Spectral‑GCN Optuna sweep")
-parser.add_argument("-c", "--config", default="configs/base.yaml",
-                    help="Path to the YAML config to use as a template.")
-parser.add_argument("--study-name", default=None,
-                    help="If omitted, a new timestamped study name is generated each run.")
-parser.add_argument("--db", default="optuna.db",
-                    help="SQLite file that stores all studies.")
-args = parser.parse_args()
 
-# --------------------------------------------------------------------------------------
-# Study name & storage URI
-# --------------------------------------------------------------------------------------
-if args.study_name is None:
-    timestamp = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-    STUDY_NAME = f"spectral_gcn_tuning_{timestamp}"
-    LOAD_IF_EXISTS = False  # force a fresh study when name is auto‑generated
-else:
-    STUDY_NAME = args.study_name
-    LOAD_IF_EXISTS = True   # resume if the name already exists
-
-STORAGE_URI = f"sqlite:///{Path(args.db).resolve()}"
-
-# --------------------------------------------------------------------------------------
-# Load base config once (as a dot‑access object)
-# --------------------------------------------------------------------------------------
-BASE_CFG = get_config(str(Path(args.config).resolve()))
-
+NUMBER_OF_TRIALS = 200
+NUMBER_OF_EPOCHS = 20
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # DEVICE = torch.device("cpu")  # uncomment to force CPU
 
 # --------------------------------------------------------------------------------------
 # Optuna objective
 # --------------------------------------------------------------------------------------
-
 def objective(trial: optuna.trial.Trial):
     # ----- clone the base config -------------------------------------------------------
-    cfg = copy.deepcopy(BASE_CFG)
+    cfg = copy.deepcopy(base_cfg)
 
     # ----- sample hyper‑parameters -----------------------------------------------------
     cfg.loss_function = trial.suggest_categorical("loss function", ["dkl", "bce", "Jeffreys"])
@@ -72,7 +44,7 @@ def objective(trial: optuna.trial.Trial):
     batch_size = trial.suggest_int("log2(batch size)", 3, 7, log=False)  # 2^3 … 2^7 = 8–128
     cfg.poly_order = trial.suggest_int("GNN's poynomial order", 1, 2, log=False)  # 2^3 … 2^7 = 8–128
     cfg.batch_size = 2 ** batch_size
-    cfg.num_epochs = 20
+    cfg.num_epochs = NUMBER_OF_EPOCHS
     cfg.load_pretrained = False
 
     # ----- helper ----------------------------------------------------------------------
@@ -173,16 +145,42 @@ def objective(trial: optuna.trial.Trial):
 # Run the study
 # --------------------------------------------------------------------------------------
 if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser(description="Spectral-GCN Optuna sweep")
+    parser.add_argument("-c", "--config", default="configs/base.yaml",
+                        help="Path to the YAML config to use as a template.")
+    parser.add_argument("--study-name", default=None,
+                        help="If omitted, a new timestamped study name is generated each run.")
+    parser.add_argument("--db", default="optuna.db",
+                        help="SQLite file that stores all studies.")
+    args = parser.parse_args()
+
+    if args.study_name is None:
+        timestamp = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+        study_name = f"spectral_gcn_tuning_{timestamp}"
+        load_if_exists = False  # force a fresh study when name is auto‑generated
+    else:
+        study_name = args.study_name
+        load_if_exists = True   # resume if the name already exists
+
+    storage_uri = f"sqlite:///{Path(args.db).resolve()}"
+
+    # --------------------------------------------------------------------------------------
+    # Load base config once (as a dot‑access object)
+    # --------------------------------------------------------------------------------------
+    base_cfg = get_config(str(Path(args.config).resolve()))
+
+
     study = optuna.create_study(
-        study_name=STUDY_NAME,
-        storage=STORAGE_URI,
+        study_name=study_name,
+        storage=storage_uri,
         direction="maximize",
-        load_if_exists=LOAD_IF_EXISTS,
+        load_if_exists=load_if_exists,
         sampler=optuna.samplers.TPESampler(seed=42),
         pruner=optuna.pruners.MedianPruner(n_startup_trials=10),
     )
 
-    print(f"Running study: {study.study_name} | storage → {STORAGE_URI}")
-    study.optimize(objective, n_trials=1000)
+    print(f"Running study: {study.study_name} | storage → {storage_uri}")
+    study.optimize(objective, n_trials=NUMBER_OF_TRIALS)
 
-    print("Best trial", study.best_trial.number, "val‑acc =", study.best_value)
+    print("Best trial", study.best_trial.number, "val-acc =", study.best_value)

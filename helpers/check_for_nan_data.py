@@ -2,7 +2,8 @@ import numpy as np, glob, os, re
 
 DELETE_NAN = True
 WRITE_TRIPPED_LINES = False  # if False, we won't touch OUTPUT_FILE
-PATH = "C:/Users/nadavmen/Work/ProjectB/Code/datasets/TT40_OT20_NS003_M40_N-2/ieee39"
+# PATH = "C:/Users/nadavmen/Work/ProjectB/Code/datasets/TT40_OT20_NS003_M40_N-2/ieee39"
+PATH = "/mnt/c/Users/nadav/work/ProjectB/datasets/TT40_OT20_NS003_M40_N-2/ieee14"
 
 OUTPUT_FILE = os.path.join(PATH, "nan_cases_outaged_lines.txt")
 
@@ -17,6 +18,9 @@ files = sorted(
     glob.glob(os.path.join(PATH, "cases", "case_*.npz")),
     key=extract_case_number
 )
+
+print("Search path:", os.path.join(PATH, "cases", "case_*.npz"))
+print("Found files:", len(files))
 
 # Prepare a lazy file handle only if we intend to write
 fout = None

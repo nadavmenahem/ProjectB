@@ -1,6 +1,6 @@
 dataset:
-  path: datasets\TT40_OT20_NS003_M40_N-2
-  network_name: ieee39
+  path: /mnt/c/Users/nadav/work/ProjectB/datasets/TT40_OT20_NS003_M40_N-2
+  network_name: ieee14
   graph_path: graph.npy
   metadata_path: meta.json
   test_size: 0.1
@@ -12,12 +12,12 @@ model:
   params_folder: Model/params
   hidden_dim: 1024
 output_features: 20
-poly_order: 1
+poly_order: 2
 batch_size: 8
 num_epochs: 20
-learning_rate: 0.0006802395740150596
+learning_rate: 0.0009333974673657127
 epsilon: 0
-dropout: 0.010694407864005656
+dropout: 0.008460298118642821
 alpha: 0.1
 topk: 3
 optimizer: adam
@@ -26,5 +26,5 @@ entropy_weight: 0
 scheduler: Cosine
 step_size: 2
 gamma: 0.6
-weight_decay: 0.0007412083549795278
+weight_decay: 6.1340046469518e-05
 load_pretrained: false
