@@ -190,7 +190,7 @@ python Model/tune_model.py --config Model/configs/config.yaml
   Open http://localhost:8080 in your browser
 3) **Export the best trial to a config file**
 ```bash
-python helpers/build_best_config.py 
+python helpers/build_best_cfg.py 
 ```
 Edit the script to point to your Optuna study:
 ```python
